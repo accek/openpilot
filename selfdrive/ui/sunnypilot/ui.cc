@@ -152,6 +152,7 @@ void sp_ui_update_params(UIStateSP *s) {
   s->scene.hide_vego_ui = params.getBool("HideVEgoUi");
   s->scene.true_vego_ui = params.getBool("TrueVEgoUi");
   s->scene.hide_blinker_ui = params.getBool("HideBlinkerUI");
+  s->scene.stock_lane_lines = params.getBool("StockLaneLines");
   s->scene.chevron_data = std::atoi(params.get("ChevronInfo").c_str());
   s->scene.dev_ui_info = std::atoi(params.get("DevUIInfo").c_str());
   s->scene.button_auto_hide = params.getBool("ButtonAutoHide");

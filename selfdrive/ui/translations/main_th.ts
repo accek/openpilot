@@ -3301,6 +3301,10 @@ This feature must be used along with SLC, and/or V-TSC, and/or M-TSC.</source>
         <source>Blinkers: Hide from Onroad Screen</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Stock Lane Lines Display</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WiFiPromptWidget</name>

@@ -61,8 +61,8 @@ typedef struct UISceneSP : UIScene {
   bool stand_still_timer;
 
   bool hide_vego_ui, true_vego_ui;
-
   bool hide_blinker_ui;
+  bool stock_lane_lines;
 
   int chevron_data;
 

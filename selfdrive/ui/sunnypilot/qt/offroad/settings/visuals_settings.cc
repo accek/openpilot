@@ -87,6 +87,12 @@ VisualsPanel::VisualsPanel(QWidget *parent) : ListWidgetSP(parent) {
       "../assets/offroad/icon_blank.png",
     },
     {
+      "StockLaneLines",
+      tr("Stock Lane Lines Display"),
+      "",
+      "../assets/offroad/icon_blank.png",
+    },
+    {
       "EndToEndLongAlertUI",
       tr("Display End-to-end Longitudinal Status (Beta)"),
       tr("Enable this will display an icon that appears when the End-to-end model decides to start or stop."),

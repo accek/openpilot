@@ -151,9 +151,8 @@ private:
   int curveSign = 0;
 
   bool hideVEgoUi;
-
   bool hideBlinkerUi;
-
+  bool stockLaneLines;
   bool splitPanelVisible;
 
   // ############################## DEV UI START ##############################
@@ -217,6 +216,7 @@ protected:
   void showEvent(QShowEvent *event) override;
   void updateFrameMat() override;
   void drawLaneLines(QPainter &painter, const UIStateSP *s);
+  void drawStockLaneLines(QPainter &painter, const UIStateSP *s);
   void drawLead(QPainter &painter, const cereal::RadarState::LeadData::Reader &lead_data, const QPointF &vd,
                 int num, const cereal::CarState::Reader &car_data, int chevron_data);
   void drawHud(QPainter &p);

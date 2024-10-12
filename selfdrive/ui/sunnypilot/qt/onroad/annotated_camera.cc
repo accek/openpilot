@@ -191,9 +191,8 @@ void AnnotatedCameraWidgetSP::updateState(const UIStateSP &s) {
   standstillElapsedTime = lateral_plan_sp.getStandstillElapsed();
 
   hideVEgoUi = s.scene.hide_vego_ui;
-
   hideBlinkerUi = s.scene.hide_blinker_ui;
-
+  stockLaneLines = s.scene.stock_lane_lines;
   splitPanelVisible = s.scene.map_visible || s.scene.onroad_settings_visible;
 
   // ############################## DEV UI START ##############################
@@ -1143,6 +1142,11 @@ void AnnotatedCameraWidgetSP::updateFrameMat() {
 }
 
 void AnnotatedCameraWidgetSP::drawLaneLines(QPainter &painter, const UIStateSP *s) {
+  if (stockLaneLines) {
+    drawStockLaneLines(painter, s);
+    return;
+  }
+
   painter.save();
 
   const UISceneSP &scene = s->scene;
@@ -1242,6 +1246,65 @@ void AnnotatedCameraWidgetSP::drawLaneLines(QPainter &painter, const UIStateSP *
     painter.setBrush(pe);
     painter.drawPath(path);
   }
+
+  painter.restore();
+}
+
+void AnnotatedCameraWidgetSP::drawStockLaneLines(QPainter &painter, const UIStateSP *s) {
+  painter.save();
+
+  const UIScene &scene = s->scene;
+  SubMaster &sm = *(s->sm);
+
+  // lanelines
+  for (int i = 0; i < std::size(scene.lane_line_vertices); ++i) {
+    painter.setBrush(QColor::fromRgbF(1.0, 1.0, 1.0, std::clamp<float>(scene.lane_line_probs[i], 0.0, 0.7)));
+    painter.drawPolygon(scene.lane_line_vertices[i]);
+  }
+
+  // road edges
+  for (int i = 0; i < std::size(scene.road_edge_vertices); ++i) {
+    painter.setBrush(QColor::fromRgbF(1.0, 0, 0, std::clamp<float>(1.0 - scene.road_edge_stds[i], 0.0, 1.0)));
+    painter.drawPolygon(scene.road_edge_vertices[i]);
+  }
+
+  // paint path
+  QLinearGradient bg(0, height(), 0, 0);
+  if (sm["controlsState"].getControlsState().getExperimentalMode()) {
+    // The first half of track_vertices are the points for the right side of the path
+    const auto &acceleration = sm["modelV2"].getModelV2().getAcceleration().getX();
+    const int max_len = std::min<int>(scene.track_vertices.length() / 2, acceleration.size());
+
+    for (int i = 0; i < max_len; ++i) {
+      // Some points are out of frame
+      int track_idx = (scene.track_vertices.length() / 2) - i;  // flip idx to start from top
+      if (scene.track_vertices[track_idx].y() < 0 || scene.track_vertices[track_idx].y() > height()) continue;
+
+      // Flip so 0 is bottom of frame
+      float lin_grad_point = (height() - scene.track_vertices[track_idx].y()) / height();
+
+      // speed up: 120, slow down: 0
+      float path_hue = fmax(fmin(60 + acceleration[i] * 35, 120), 0);
+      // FIXME: painter.drawPolygon can be slow if hue is not rounded
+      path_hue = int(path_hue * 100 + 0.5) / 100;
+
+      float saturation = fmin(fabs(acceleration[i] * 1.5), 1);
+      float lightness = util::map_val(saturation, 0.0f, 1.0f, 0.95f, 0.62f);  // lighter when grey
+      float alpha = util::map_val(lin_grad_point, 0.75f / 2.f, 0.75f, 0.4f, 0.0f);  // matches previous alpha fade
+      bg.setColorAt(lin_grad_point, QColor::fromHslF(path_hue / 360., saturation, lightness, alpha));
+
+      // Skip a point, unless next is last
+      i += (i + 2) < max_len ? 1 : 0;
+    }
+
+  } else {
+    bg.setColorAt(0.0, QColor::fromHslF(148 / 360., 0.94, 0.51, 0.4));
+    bg.setColorAt(0.5, QColor::fromHslF(112 / 360., 1.0, 0.68, 0.35));
+    bg.setColorAt(1.0, QColor::fromHslF(112 / 360., 1.0, 0.68, 0.0));
+  }
+
+  painter.setBrush(bg);
+  painter.drawPolygon(scene.track_vertices);
 
   painter.restore();
 }
