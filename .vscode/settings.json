@@ -23,5 +23,13 @@
     "system/**",
     "third_party/**",
     "tools/**",
-  ]
+  ],
+  "C_Cpp.default.defines": [
+    "SUNNYPILOT"
+  ],
+  "files.associations": {
+    "*.ejs": "html",
+    "cmath": "cpp"
+  },
+  "editor.formatOnSave": false
 }
