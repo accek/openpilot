@@ -112,8 +112,6 @@ class VCruiseHelper:
   def _update_v_cruise_non_pcm(self, CS, enabled, is_metric, reverse_acc):
     # handle button presses. TODO: this should be in state_control, but a decelCruise press
     # would have the effect of both enabling and changing speed is checked after the state transition
-    if not enabled:
-      return
 
     if self.slc_state == SpeedLimitControlState.active and self.slc_state_prev == SpeedLimitControlState.preActive:
       return
@@ -142,7 +140,7 @@ class VCruiseHelper:
 
     resume_button = ButtonType.accelCruise
     if not self.CP.pcmCruiseSpeed:
-      if self.CP.carName == "chrysler":
+      if self.CP.carName in ("chrysler", "volkswagen"):
         resume_button = ButtonType.resumeCruise
 
     # Don't adjust speed when pressing resume to exit standstill
@@ -202,6 +200,8 @@ class VCruiseHelper:
         initial = MAZDA_V_CRUISE_MIN[is_metric]
       elif self.CP.carName == "volkswagen":
         initial = VOLKSWAGEN_V_CRUISE_MIN[is_metric]
+        if not self.CP.pcmCruiseSpeed:
+          resume_buttons = (ButtonType.resumeCruise,)
 
     # 250kph or above probably means we never had a set speed
     if any(b.type in resume_buttons for b in CS.buttonEvents) and self.v_cruise_kph_last < 250:
