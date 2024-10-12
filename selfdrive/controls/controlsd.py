@@ -153,6 +153,7 @@ class Controls:
     self.mismatch_counter = 0
     self.cruise_mismatch_counter = 0
     self.last_blinker_frame = 0
+    self.paused_by_blinker = False
     self.last_steering_pressed_frame = 0
     self.distance_traveled = 0
     self.last_functional_fan_frame = 0
@@ -611,12 +612,18 @@ class Controls:
     CC = car.CarControl.new_message()
     CC.enabled = self.enabled
 
+    # Check lateral pause by blinker
+    blinker = CS.leftBlinker or CS.rightBlinker
+    if CS.belowLaneChangeSpeed and blinker:
+      self.paused_by_blinker = True
+    elif not CS.belowLaneChangeSpeed and not (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 1.0:
+      self.paused_by_blinker = False
+
     # Check which actuators can be enabled
     standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
     CC.latActive = (self.active or self.mads_ndlob) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.joystick_mode) and CS.madsEnabled and (not CS.brakePressed or self.mads_ndlob) and \
-                   (not CS.belowLaneChangeSpeed or (not (((self.sm.frame - self.last_blinker_frame) * DT_CTRL) < 1.0) and
-                   not (CS.leftBlinker or CS.rightBlinker))) and CS.latActive and self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated and \
+                   not self.paused_by_blinker and CS.latActive and self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated and \
                    not self.process_not_running
     CC.longActive = self.enabled_long and not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
 
@@ -628,7 +635,7 @@ class Controls:
       CC.leftBlinker = blinker_svs.laneChangeDirection == LaneChangeDirection.left
       CC.rightBlinker = blinker_svs.laneChangeDirection == LaneChangeDirection.right
 
-    if CS.leftBlinker or CS.rightBlinker:
+    if blinker:
       self.last_blinker_frame = self.sm.frame
 
     # State specific actions
