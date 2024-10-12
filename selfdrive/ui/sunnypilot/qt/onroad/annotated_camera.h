@@ -152,6 +152,8 @@ private:
 
   bool hideVEgoUi;
 
+  bool hideBlinkerUi;
+
   bool splitPanelVisible;
 
   // ############################## DEV UI START ##############################

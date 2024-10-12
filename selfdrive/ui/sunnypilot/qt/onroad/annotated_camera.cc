@@ -192,6 +192,8 @@ void AnnotatedCameraWidgetSP::updateState(const UIStateSP &s) {
 
   hideVEgoUi = s.scene.hide_vego_ui;
 
+  hideBlinkerUi = s.scene.hide_blinker_ui;
+
   splitPanelVisible = s.scene.map_visible || s.scene.onroad_settings_visible;
 
   // ############################## DEV UI START ##############################
@@ -1493,7 +1495,7 @@ void AnnotatedCameraWidgetSP::paintGL() {
 
   drawHud(painter);
 
-  if (left_blinker || right_blinker) {
+  if ((left_blinker || right_blinker) && !hideBlinkerUi) {
     blinker_frame++;
     int state = blinkerPulse(blinker_frame);
     int blinker_x = splitPanelVisible ? 150 : 180;

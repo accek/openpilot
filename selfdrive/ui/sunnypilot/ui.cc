@@ -71,7 +71,7 @@ void update_line_data(const UIStateSP *s, const cereal::XYZTData::Reader &line,
   }
 }
 
-//todo: revisit, we could reuse from OG update_model  
+//todo: revisit, we could reuse from OG update_model
 void sp_update_model(UIStateSP *s, const cereal::ModelDataV2::Reader &model) {
   UISceneSP &scene = s->scene;
   auto model_position = model.getPosition();
@@ -151,6 +151,7 @@ void sp_ui_update_params(UIStateSP *s) {
   s->scene.show_debug_ui = params.getBool("ShowDebugUI");
   s->scene.hide_vego_ui = params.getBool("HideVEgoUi");
   s->scene.true_vego_ui = params.getBool("TrueVEgoUi");
+  s->scene.hide_blinker_ui = params.getBool("HideBlinkerUI");
   s->scene.chevron_data = std::atoi(params.get("ChevronInfo").c_str());
   s->scene.dev_ui_info = std::atoi(params.get("DevUIInfo").c_str());
   s->scene.button_auto_hide = params.getBool("ButtonAutoHide");
@@ -192,7 +193,7 @@ void UIStateSP::updateStatus() {
     if (status != STATUS_OVERRIDE) {
       status = mads_enabled && car_control.getLongActive() ? STATUS_ENGAGED : mads_enabled ? STATUS_MADS : STATUS_DISENGAGED;
     }
-    
+
     if (mads_enabled != last_mads_enabled) {
       mads_path_state = true;
     }

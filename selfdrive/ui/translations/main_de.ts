@@ -3303,6 +3303,10 @@ This feature must be used along with SLC, and/or V-TSC, and/or M-TSC.</source>
         <source>All</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Blinkers: Hide from Onroad Screen</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>WiFiPromptWidget</name>

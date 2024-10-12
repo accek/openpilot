@@ -62,6 +62,8 @@ typedef struct UISceneSP : UIScene {
 
   bool hide_vego_ui, true_vego_ui;
 
+  bool hide_blinker_ui;
+
   int chevron_data;
 
   bool gac;
