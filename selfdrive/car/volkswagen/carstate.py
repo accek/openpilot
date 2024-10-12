@@ -277,7 +277,7 @@ class CarState(CarStateBase):
       self.eps_init_start_frame = self.frame
     self.eps_init_complete = self.eps_init_complete or hca_status in ("DISABLED", "READY", "ACTIVE") or self.frame > self.eps_init_start_frame + 600
     perm_fault = hca_status == "DISABLED" or (self.eps_init_complete and hca_status in ("INITIALIZING", "FAULT"))
-    temp_fault = hca_status in ("REJECTED", "PREEMPTED") or not self.eps_init_complete
+    temp_fault = hca_status in ("REJECTED", "PREEMPTED") or (motor_running and not self.eps_init_complete)
     return temp_fault, perm_fault
 
   @staticmethod
