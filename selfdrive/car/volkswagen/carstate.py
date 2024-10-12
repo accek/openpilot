@@ -11,6 +11,7 @@ class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
     self.frame = 0
+    self.eps_init_start_frame = 0
     self.eps_init_complete = False
     self.CCP = CarControllerParams(CP)
     self.button_states = {button.event_type: False for button in self.CCP.BUTTONS}
@@ -59,7 +60,8 @@ class CarState(CarStateBase):
     ret.steeringPressed = abs(ret.steeringTorque) > self.CCP.STEER_DRIVER_ALLOWANCE
     ret.yawRate = pt_cp.vl["ESP_02"]["ESP_Gierrate"] * (1, -1)[int(pt_cp.vl["ESP_02"]["ESP_VZ_Gierrate"])] * CV.DEG_TO_RAD
     hca_status = self.CCP.hca_status_values.get(pt_cp.vl["LH_EPS_03"]["EPS_HCA_Status"])
-    ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status)
+    motor_running = bool(pt_cp.vl["Motor_14"]["MO_Motor_laeuft"]) and not bool(pt_cp.vl["Motor_14"]["MO_StartStopp_Motorstopp"])
+    ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status, motor_running)
 
     # VW Emergency Assist status tracking and mitigation
     self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
@@ -187,7 +189,8 @@ class CarState(CarStateBase):
     ret.steeringPressed = abs(ret.steeringTorque) > self.CCP.STEER_DRIVER_ALLOWANCE
     ret.yawRate = pt_cp.vl["Bremse_5"]["Giergeschwindigkeit"] * (1, -1)[int(pt_cp.vl["Bremse_5"]["Vorzeichen_der_Giergeschwindigk"])] * CV.DEG_TO_RAD
     hca_status = self.CCP.hca_status_values.get(pt_cp.vl["Lenkhilfe_2"]["LH2_Sta_HCA"])
-    ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status)
+    motor_running = True  # TODO: extract from messages
+    ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status, motor_running)
 
     # Update gas, brakes, and gearshift.
     ret.gas = pt_cp.vl["Motor_3"]["Fahrpedal_Rohsignal"] / 100.0
@@ -265,10 +268,14 @@ class CarState(CarStateBase):
     self.frame += 1
     return ret
 
-  def update_hca_state(self, hca_status):
+  def update_hca_state(self, hca_status, motor_running):
     # Treat INITIALIZING and FAULT as temporary for worst likely EPS recovery time, for cars without factory Lane Assist
-    # DISABLED means the EPS hasn't been configured to support Lane Assist
-    self.eps_init_complete = self.eps_init_complete or (hca_status in ("DISABLED", "READY", "ACTIVE") or self.frame > 600)
+    # DISABLED means the EPS hasn't been configured to support Lane Assist. Allow EPS to be temporarily initializing / faulting
+    # after motor start / restart from start-stop.
+    if not motor_running:
+      self.eps_init_complete = False
+      self.eps_init_start_frame = self.frame
+    self.eps_init_complete = self.eps_init_complete or hca_status in ("DISABLED", "READY", "ACTIVE") or self.frame > self.eps_init_start_frame + 600
     perm_fault = hca_status == "DISABLED" or (self.eps_init_complete and hca_status in ("INITIALIZING", "FAULT"))
     temp_fault = hca_status in ("REJECTED", "PREEMPTED") or not self.eps_init_complete
     return temp_fault, perm_fault
