@@ -28,7 +28,7 @@ def create_eps_update(packer, bus, eps_stock_values, ea_simulated_torque):
   return packer.make_can_msg("LH_EPS_03", bus, values)
 
 
-def create_lka_hud_control(packer, bus, ldw_stock_values, lat_active, steering_pressed, hud_alert, hud_control):
+def create_lka_hud_control(packer, bus, ldw_stock_values, mads_enabled, lat_active, hud_alert, hud_control):
   values = {}
   if len(ldw_stock_values):
     values = {s: ldw_stock_values[s] for s in [
@@ -40,8 +40,8 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, lat_active, steering_p
     ]}
 
   values.update({
-    "LDW_Status_LED_gelb": 1 if lat_active and steering_pressed else 0,
-    "LDW_Status_LED_gruen": 1 if lat_active and not steering_pressed else 0,
+    "LDW_Status_LED_gelb": 1 if mads_enabled else 0,
+    "LDW_Status_LED_gruen": 1 if lat_active else 0,
     "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + hud_control.leftLaneVisible,
     "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + hud_control.rightLaneVisible,
     "LDW_Texte": hud_alert,
@@ -75,22 +75,23 @@ def create_acc_buttons_control(packer, bus, gra_stock_values, frame=0, buttons=0
   return packer.make_can_msg("GRA_ACC_01", bus, values)
 
 
-def acc_control_value(main_switch_on, acc_faulted, long_active):
-  if acc_faulted:
+def acc_control_value(CS, long_active):
+  acc_control = 0
+  if CS.accFaulted:
     acc_control = 6
   elif long_active:
-    acc_control = 3
-  elif main_switch_on:
+    if CS.gasPressed:
+      acc_control = 4
+    else:
+      acc_control = 3
+  elif CS.cruiseState.available:
     acc_control = 2
-  else:
-    acc_control = 0
-
   return acc_control
 
 
-def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
-  # TODO: happens to resemble the ACC control value for now, but extend this for init/gas override later
-  return acc_control_value(main_switch_on, acc_faulted, long_active)
+def acc_hud_status_value(CS, long_active):
+  # TODO: happens to resemble the ACC control value for now, but extend this for init
+  return acc_control_value(CS, long_active)
 
 
 def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
@@ -133,11 +134,11 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   return commands
 
 
-def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
+def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, target_distance_bars):
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
-    "ACC_Gesetzte_Zeitluecke": distance + 2,
+    "ACC_Gesetzte_Zeitluecke": target_distance_bars + 1,
     "ACC_Display_Prio": 3,
     "ACC_Abstandsindex": lead_distance,
   }

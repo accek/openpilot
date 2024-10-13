@@ -30,7 +30,11 @@ class CarController(CarControllerBase):
     self.hca_frame_same_torque = 0
     self.last_button_frame = 0
 
-    self.sm = messaging.SubMaster(['longitudinalPlanSP'])
+    sub_services = ['longitudinalPlanSP']
+    if CP.openpilotLongitudinalControl:
+      sub_services.append('radarState')
+    self.sm = messaging.SubMaster(sub_services)
+
     self.param_s = Params()
     self.last_speed_limit_sign_tap_prev = False
     self.speed_limit = 0.
@@ -152,13 +156,11 @@ class CarController(CarControllerBase):
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
         hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
-      can_sends.append(self.CCS.create_lka_hud_control(self.packer_pt, CANBUS.pt, CS.ldw_stock_values, CC.latActive,
-                                                       CS.out.steeringPressed, hud_alert, hud_control))
+      can_sends.append(self.CCS.create_lka_hud_control(self.packer_pt, CANBUS.pt, CS.ldw_stock_values, CS.madsEnabled,
+                                                       CC.latActive, hud_alert, hud_control))
 
     if self.frame % self.CCP.ACC_HUD_STEP == 0 and self.CP.openpilotLongitudinalControl:
-      lead_distance = 0
-      if hud_control.leadVisible and self.frame * DT_CTRL > 1.0:  # Don't display lead until we know the scaling factor
-        lead_distance = 512 if CS.upscale_lead_car_signal else 8
+      lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal) if self.sm.updated['radarState'] else 0
       acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
       # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
@@ -323,3 +325,20 @@ class CarController(CarControllerBase):
 
       cruise_button = self.get_button_control(CS, self.final_speed_kph, v_cruise_kph_prev)  # MPH/KPH based button presses
     return cruise_button
+
+  def calculate_lead_distance(self, CS, hud_control, upscale):
+    lead_one = self.sm["radarState"].leadOne
+    lead_two = self.sm["radarState"].leadTwo
+    v_ego = max(2.5, CS.vEgo)
+    max_value = 1023 if upscale else 15
+    max_relative_time = 3.0
+
+    distance = None
+    if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
+      distance = lead_one.dRel
+    if lead_two.status:
+      distance = lead_two.dRel
+    if distance is not None:
+      return round(min(1.0, distance / v_ego / max_relative_time) * max_value)
+    else:
+      return max_value if hud_control.leadVisible else 0
