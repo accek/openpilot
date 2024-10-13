@@ -577,7 +577,7 @@ class CarInterfaceBase(ABC):
     return acc_enabled
 
   def get_sp_cancel_cruise_state(self):
-    self.CS.madsEnabled = False if not self.enable_mads or self.disengage_on_accelerator else self.CS.madsEnabled
+    self.CS.madsEnabled = False if not self.enable_mads or self.disengage_on_accelerator or not self.CS.params_list.experimental_mode else self.CS.madsEnabled
     self.CS.accEnabled = False
 
   def get_sp_pedal_disengage(self, cs_out):
