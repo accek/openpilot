@@ -64,7 +64,6 @@ class CarController(CarControllerBase):
     self.steady_speed = 0
     self.acc_type = -1
     self.send_count = 0
-    self.ea_simulation_active = False
 
   def update(self, CC, CS, now_nanos):
     if not self.CP.pcmCruiseSpeed:
@@ -138,13 +137,10 @@ class CarController(CarControllerBase):
       # to include small simulated inputs. See commaai/openpilot#23274 for background.
       sim_segment_frames = int(self.CCP.STEER_DRIVER_EA_SIMULATED)   # 1Nm/s
       sim_frame = self.frame % (2*sim_segment_frames)
-      if sim_frame == 0:
-        self.ea_simulation_active = CC.latActive
       sign = 1 if CS.out.steeringTorque >= 0 else -1
-      ea_simulated_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
-      if abs(CS.out.steeringTorque) > ea_simulated_torque or not self.ea_simulation_active:
-        ea_simulated_torque = CS.out.steeringTorque
-      ea_simulated_torque *= sign  # we keep the original torque direction for simplicity
+      sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
+      sim_torque = min(sim_torque, abs(2*apply_steer))
+      ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
       can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
 
     # **** Acceleration Controls ******************************************** #
