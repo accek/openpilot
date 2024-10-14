@@ -30,7 +30,7 @@ class CarController(CarControllerBase):
     self.hca_frame_same_torque = 0
     self.last_button_frame = 0
 
-    sub_services = ['longitudinalPlanSP']
+    sub_services = ['longitudinalPlanSP', 'driverMonitoringState']
     if CP.openpilotLongitudinalControl:
       sub_services.append('radarState')
     self.sm = messaging.SubMaster(sub_services)
@@ -140,6 +140,8 @@ class CarController(CarControllerBase):
       sign = 1 if CS.out.steeringTorque >= 0 else -1
       sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
       sim_torque = min(sim_torque, abs(2*apply_steer))
+      if self.sm['driverMonitoringState'].isDistracted:
+        sim_torque = 0
       ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
       can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
 
