@@ -138,8 +138,8 @@ class CarController(CarControllerBase):
       # to include small simulated inputs. See commaai/openpilot#23274 for background.
       sim_segment_frames = int(self.CCP.STEER_DRIVER_EA_SIMULATED)   # 1Nm/s
       sim_frame = self.frame % (2*sim_segment_frames)
-        if sim_frame == 0:
-          self.ea_simulation_active = CC.latActive
+      if sim_frame == 0:
+        self.ea_simulation_active = CC.latActive
       sign = 1 if CS.out.steeringTorque >= 0 else -1
       ea_simulated_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
       if abs(CS.out.steeringTorque) > ea_simulated_torque or not self.ea_simulation_active:
