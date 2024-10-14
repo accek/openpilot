@@ -327,19 +327,17 @@ class CarState(CarStateBase):
     if CP.flags & VolkswagenFlags.PQ:
       return CarState.get_cam_can_parser_pq(CP)
 
-    messages = []
+    messages = [
+      # sig_address, frequency
+      ("LDW_02", 10)      # From R242 Driver assistance camera
+    ]
 
     if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
       messages += [
         ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
       ]
 
-    if CP.networkLocation == NetworkLocation.fwdCamera:
-      messages += [
-        # sig_address, frequency
-        ("LDW_02", 10)      # From R242 Driver assistance camera
-      ]
-    else:
+    if CP.networkLocation != NetworkLocation.fwdCamera:
       # Radars are here on CANBUS.cam
       if not CP.spFlags & VolkswagenFlagsSP.SP_CC_ONLY_NO_RADAR:
         messages += MqbExtraSignals.fwd_radar_messages
