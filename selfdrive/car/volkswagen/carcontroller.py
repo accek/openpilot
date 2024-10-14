@@ -132,25 +132,16 @@ class CarController(CarControllerBase):
       can_sends.append(self.CCS.create_steering_control(self.packer_pt, CANBUS.pt, CS.hca_stock_values,
                                                         False, apply_steer, hca_enabled))
 
-      #if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-      #  # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
-      #  # to include small simulated inputs. See commaai/openpilot#23274 for background.
-      #  sim_segment_frames = int(self.CCP.STEER_DRIVER_EA_SIMULATED)   # 1Nm/s
-      #  sim_frame = self.frame % (2*sim_segment_frames)
-      #  sign = 1 if CS.out.steeringTorque >= 0 else -1
-      #  sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
-      #  sim_torque = min(sim_torque, abs(2*apply_steer))
-      #  ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
-      #  can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
-
-      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-        # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
-        # to the greatest of actual driver input or 2x openpilot's output (1x openpilot output is not enough to
-        # consistently reset inactivity detection on straight level roads). See commaai/openpilot#23274 for background.
-        ea_simulated_torque = clip(apply_steer * 2, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
-        if abs(CS.out.steeringTorque) > abs(ea_simulated_torque):
-          ea_simulated_torque = CS.out.steeringTorque
-        can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
+    if self.frame % self.CCP.STEER_STEP == 0 and self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+      # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
+      # to include small simulated inputs. See commaai/openpilot#23274 for background.
+      sim_segment_frames = int(self.CCP.STEER_DRIVER_EA_SIMULATED)   # 1Nm/s
+      sim_frame = self.frame % (2*sim_segment_frames)
+      sign = 1 if CS.out.steeringTorque >= 0 else -1
+      sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
+      sim_torque = min(sim_torque, abs(2*apply_steer))
+      ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
+      can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
 
     # **** Acceleration Controls ******************************************** #
 
