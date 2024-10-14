@@ -165,7 +165,8 @@ class CarController(CarControllerBase):
                                                        CC.latActive, hud_alert, hud_control))
 
     if self.frame % self.CCP.ACC_HUD_STEP == 0 and self.CP.openpilotLongitudinalControl:
-      lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal) if self.sm.updated['radarState'] else 0
+      lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal) \
+        if self.sm.valid['radarState'] and self.sm.alive['radarState'] else 0
       acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
       # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
