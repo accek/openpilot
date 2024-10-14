@@ -62,6 +62,7 @@ class CarControllerParams:
         Button(car.CarState.ButtonEvent.Type.decelCruise, "GRA_Neu", "GRA_Down_kurz", [1]),
         Button(car.CarState.ButtonEvent.Type.cancel, "GRA_Neu", "GRA_Abbrechen", [1]),
         Button(car.CarState.ButtonEvent.Type.gapAdjustCruise, "GRA_Neu", "GRA_Zeitluecke", [1]),
+        Button(car.CarState.ButtonEvent.Type.gapAdjustCruiseUp, "GRA_Neu", "GRA_Zeitluecke", [2]),
       ]
 
       self.LDW_MESSAGES = {
@@ -94,6 +95,7 @@ class CarControllerParams:
         Button(car.CarState.ButtonEvent.Type.decelCruise, "GRA_ACC_01", "GRA_Tip_Runter", [1]),
         Button(car.CarState.ButtonEvent.Type.cancel, "GRA_ACC_01", "GRA_Abbrechen", [1]),
         Button(car.CarState.ButtonEvent.Type.gapAdjustCruise, "GRA_ACC_01", "GRA_Verstellung_Zeitluecke", [1]),
+        Button(car.CarState.ButtonEvent.Type.gapAdjustCruiseUp, "GRA_ACC_01", "GRA_Verstellung_Zeitluecke", [2]),
       ]
 
       self.LDW_MESSAGES = {

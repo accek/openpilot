@@ -218,7 +218,7 @@ class CarController(CarControllerBase):
         if be.type in (ButtonType.accelCruise, ButtonType.resumeCruise,
                        ButtonType.decelCruise, ButtonType.setCruise) and be.pressed:
           self.timer = 40
-        elif be.type == ButtonType.gapAdjustCruise and be.pressed:
+        elif be.type in (ButtonType.gapAdjustCruise, ButtonType.gapAdjustCruiseUp) and be.pressed:
           self.timer = 300
     elif self.timer:
       self.timer -= 1
