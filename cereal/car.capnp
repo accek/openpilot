@@ -319,6 +319,7 @@ struct CarState {
       resumeCruise @10;
       gapAdjustCruise @11;
       gapAdjustCruiseUp @12;
+      gapAdjustCruiseDown @13;
     }
   }
 
@@ -431,7 +432,7 @@ struct CarControl {
     leftLaneVisible @7: Bool;
     rightLaneDepart @8: Bool;
     leftLaneDepart @9: Bool;
-    leadDistanceBars @10: Int8;  # 1-3: 1 is closest, 3 is farthest. some ports may utilize 2-4 bars instead
+    leadDistanceBars @10: Int8;  # 1-4: 1 is closest, 3 is farthest. some ports may utilize 2-5 bars instead
 
     enum VisualAlert {
       # these are the choices from the Honda

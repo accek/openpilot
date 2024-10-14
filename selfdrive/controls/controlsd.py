@@ -728,7 +728,8 @@ class Controls:
     # toggle experimental mode once on distance button hold
     if self.CP.openpilotLongitudinalControl:
       if (self.v_cruise_helper.button_timers[ButtonType.gapAdjustCruise] == CRUISE_LONG_PRESS or
-          self.v_cruise_helper.button_timers[ButtonType.gapAdjustCruiseUp] == CRUISE_LONG_PRESS) and \
+          self.v_cruise_helper.button_timers[ButtonType.gapAdjustCruiseUp] == CRUISE_LONG_PRESS or
+          self.v_cruise_helper.button_timers[ButtonType.gapAdjustCruiseDown] == CRUISE_LONG_PRESS) and \
             not self.experimental_mode_update:
         self.experimental_mode = not self.experimental_mode
         self.params.put_bool_nonblocking("ExperimentalMode", self.experimental_mode)
@@ -736,16 +737,19 @@ class Controls:
 
     # decrement personality on distance button press
     if self.CP.openpilotLongitudinalControl:
+      new_personality = self.personality
       if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
-        if not self.experimental_mode_update:
-          self.personality = (self.personality - 1) % 3
-          self.params.put_nonblocking('LongitudinalPersonality', str(self.personality))
-        self.experimental_mode_update = False
-      if any(not be.pressed and be.type == ButtonType.gapAdjustCruiseUp for be in CS.buttonEvents):
-        if not self.experimental_mode_update:
-          self.personality = (self.personality + 1) % 3
-          self.params.put_nonblocking('LongitudinalPersonality', str(self.personality))
-        self.experimental_mode_update = False
+        new_personality = (self.personality - 1) % 4
+      elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseUp for be in CS.buttonEvents) \
+          and self.personality < 3:
+        new_personality = self.personality + 1
+      elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseDown for be in CS.buttonEvents) \
+          and self.personality > 0:
+        new_personality = self.personality - 1
+      if new_personality != self.personality and not self.experimental_mode_update:
+        self.personality = new_personality
+        self.params.put_nonblocking('LongitudinalPersonality', str(new_personality))
+      self.experimental_mode_update = False
 
     return CC, lac_log
 
@@ -778,7 +782,7 @@ class Controls:
     hudControl.speedVisible = self.enabled_long
     hudControl.lanesVisible = self.enabled
     hudControl.leadVisible = self.sm['longitudinalPlan'].hasLead
-    hudControl.leadDistanceBars = PERSONALITY_MAPPING.get(self.personality, log.LongitudinalPersonality.standard) + 1
+    hudControl.leadDistanceBars = self.personality + 1
 
     hudControl.rightLaneVisible = True
     hudControl.leftLaneVisible = True
