@@ -64,6 +64,7 @@ class CarController(CarControllerBase):
     self.steady_speed = 0
     self.acc_type = -1
     self.send_count = 0
+    self.ea_simulation_active = False
 
   def update(self, CC, CS, now_nanos):
     if not self.CP.pcmCruiseSpeed:
@@ -129,16 +130,22 @@ class CarController(CarControllerBase):
 
       self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
       self.apply_steer_last = apply_steer
-      can_sends.append(self.CCS.create_steering_control(self.packer_pt, CANBUS.pt, apply_steer, hca_enabled))
+      can_sends.append(self.CCS.create_steering_control(self.packer_pt, CANBUS.pt, CS.hca_stock_values,
+                                                        CS.out.carFaultedNonCritical, apply_steer, hca_enabled))
 
-      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-        # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
-        # to the greatest of actual driver input or 2x openpilot's output (1x openpilot output is not enough to
-        # consistently reset inactivity detection on straight level roads). See commaai/openpilot#23274 for background.
-        ea_simulated_torque = clip(apply_steer * 2, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
-        if abs(CS.out.steeringTorque) > abs(ea_simulated_torque):
-          ea_simulated_torque = CS.out.steeringTorque
-        can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
+    if self.frame % self.CCP.STEER_STEP == 0 and self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+      # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
+      # to include small simulated inputs. See commaai/openpilot#23274 for background.
+      sim_segment_frames = int(self.CCP.STEER_DRIVER_EA_SIMULATED)   # 1Nm/s
+      sim_frame = self.frame % (2*sim_segment_frames)
+        if sim_frame == 0:
+          self.ea_simulation_active = CC.latActive
+      sign = 1 if CS.out.steeringTorque >= 0 else -1
+      ea_simulated_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
+      if abs(CS.out.steeringTorque) > ea_simulated_torque or not self.ea_simulation_active:
+        ea_simulated_torque = CS.out.steeringTorque
+      ea_simulated_torque *= sign  # we keep the original torque direction for simplicity
+      can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
 
     # **** Acceleration Controls ******************************************** #
 

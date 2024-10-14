@@ -1,12 +1,24 @@
-def create_steering_control(packer, bus, apply_steer, lkas_enabled):
-  values = {
-    "HCA_01_Status_HCA": 5 if lkas_enabled else 3,
-    "HCA_01_LM_Offset": abs(apply_steer),
-    "HCA_01_LM_OffSign": 1 if apply_steer < 0 else 0,
-    "HCA_01_Vib_Freq": 18,
-    "HCA_01_Sendestatus": 1 if lkas_enabled else 0,
+def create_steering_control(packer, bus, hca_stock_values, force_stock, apply_steer, lkas_enabled):
+  values = {s: hca_stock_values[s] for s in [
+    "HCA_01_Status_HCA",
+    "HCA_01_LM_Offset",
+    "HCA_01_LM_OffSign",
+    "HCA_01_Vib_Freq",
+    "EA_ACC_Sollstatus",
+    "EA_Ruckprofil",
+    "EA_ACC_Wunschgeschwindigkeit",
+    "EA_Ruckfreigabe",
+  ]} if hca_stock_values else {
     "EA_ACC_Wunschgeschwindigkeit": 327.36,
   }
+  if not force_stock:
+    values.update({
+      "HCA_01_Status_HCA": 5 if lkas_enabled else 3,
+      "HCA_01_LM_Offset": abs(apply_steer),
+      "HCA_01_LM_OffSign": 1 if apply_steer < 0 else 0,
+      "HCA_01_Vib_Freq": 18,
+      "HCA_01_Sendestatus": 1 if lkas_enabled else 0,
+    })
   return packer.make_can_msg("HCA_01", bus, values)
 
 
@@ -15,16 +27,17 @@ def create_eps_update(packer, bus, eps_stock_values, ea_simulated_torque):
     "COUNTER",                     # Sync counter value to EPS output
     "EPS_Lenkungstyp",             # EPS rack type
     "EPS_Berechneter_LW",          # Absolute raw steering angle
+    "EPS_BLW_QBIT",
     "EPS_VZ_BLW",                  # Raw steering angle sign
     "EPS_HCA_Status",              # EPS HCA control status
+    "EPS_DSR_Status",              # EPS DSR (Driver Steering Recommendation) control status
+    "EPS_Lenkmoment_QBit",
   ]}
-
   values.update({
     # Absolute driver torque input and sign, with EA inactivity mitigation
     "EPS_Lenkmoment": abs(ea_simulated_torque),
     "EPS_VZ_Lenkmoment": 1 if ea_simulated_torque < 0 else 0,
   })
-
   return packer.make_can_msg("LH_EPS_03", bus, values)
 
 
@@ -38,13 +51,14 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, mads_enabled, lat_acti
       "LDW_DLC",                # Lane departure, distance to line crossing
       "LDW_TLC",                # Lane departure, time to line crossing
     ]}
+  stock_alert = values["LDW_Texte"]
 
   values.update({
     "LDW_Status_LED_gelb": 1 if mads_enabled else 0,
     "LDW_Status_LED_gruen": 1 if lat_active else 0,
     "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + hud_control.leftLaneVisible,
     "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + hud_control.rightLaneVisible,
-    "LDW_Texte": hud_alert,
+    "LDW_Texte": hud_alert if hud_alert > 0 else stock_alert,
   })
   return packer.make_can_msg("LDW_02", bus, values)
 

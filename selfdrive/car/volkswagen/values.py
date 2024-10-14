@@ -29,6 +29,7 @@ class CarControllerParams:
   STEER_MAX = 300                          # Max heading control assist torque 3.00 Nm
   STEER_DRIVER_MULTIPLIER = 3              # weight driver torque heavily
   STEER_DRIVER_FACTOR = 1                  # from dbc
+  STEER_DRIVER_EA_SIMULATED = 60           # Simulated steering inputs to pacify Emergency Assist, 0.6 Nm
 
   STEER_TIME_MAX = 360                     # Max time that EPS allows uninterrupted HCA steering control
   STEER_TIME_ALERT = STEER_TIME_MAX - 10   # If mitigation fails, time to soft disengage before EPS timer expires

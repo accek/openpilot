@@ -18,6 +18,7 @@ class CarState(CarStateBase):
     self.esp_hold_confirmation = False
     self.upscale_lead_car_signal = False
     self.eps_stock_values = False
+    self.hca_stock_values = False
 
   def create_button_events(self, pt_cp, buttons):
     button_events = []
@@ -66,6 +67,7 @@ class CarState(CarStateBase):
     # VW Emergency Assist status tracking and mitigation
     self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
     if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+      self.hca_stock_values = cam_cp.vl["HCA_01"]
       ret.carFaultedNonCritical = bool(cam_cp.vl["HCA_01"]["EA_Ruckfreigabe"]) or cam_cp.vl["HCA_01"]["EA_ACC_Sollstatus"] > 0
 
     # Update gas, brakes, and gearshift.
