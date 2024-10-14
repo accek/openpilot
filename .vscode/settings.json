@@ -11,7 +11,8 @@
   "files.exclude": {
     "**/.git": true,
     "**/.venv": true,
-    "**/__pycache__": true
+    "**/__pycache__": true,
+    "openpilot": true
   },
   "python.analysis.exclude": [
     "**/.git",
