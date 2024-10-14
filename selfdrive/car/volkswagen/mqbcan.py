@@ -27,7 +27,7 @@ def create_eps_update(packer, bus, eps_stock_values, ea_simulated_torque):
     "COUNTER",                     # Sync counter value to EPS output
     "EPS_Lenkungstyp",             # EPS rack type
     "EPS_Berechneter_LW",          # Absolute raw steering angle
-    "EPS_BLW_QBIT",
+    "EPS_BLW_QBit",
     "EPS_VZ_BLW",                  # Raw steering angle sign
     "EPS_HCA_Status",              # EPS HCA control status
     "EPS_DSR_Status",              # EPS DSR (Driver Steering Recommendation) control status
