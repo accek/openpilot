@@ -146,7 +146,7 @@ class CarController(CarControllerBase):
     # **** Acceleration Controls ******************************************** #
 
     if self.frame % self.CCP.ACC_CONTROL_STEP == 0 and self.CP.openpilotLongitudinalControl:
-      acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
+      acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
@@ -164,7 +164,7 @@ class CarController(CarControllerBase):
 
     if self.frame % self.CCP.ACC_HUD_STEP == 0 and self.CP.openpilotLongitudinalControl:
       lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal) if self.sm.updated['radarState'] else 0
-      acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
+      acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
       # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
       current_speed = CS.out.vEgo * CV.MS_TO_KPH

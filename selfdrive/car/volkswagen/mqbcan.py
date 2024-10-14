@@ -91,23 +91,23 @@ def create_acc_buttons_control(packer, bus, gra_stock_values, frame=0, buttons=0
   return packer.make_can_msg("GRA_ACC_01", bus, values)
 
 
-def acc_control_value(CS, long_active):
+def acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active):
   acc_control = 0
-  if CS.accFaulted:
+  if acc_faulted:
     acc_control = 6
   elif long_active:
-    if CS.gasPressed:
+    if gas_pressed:
       acc_control = 4
     else:
       acc_control = 3
-  elif CS.cruiseState.available:
+  elif cruise_available:
     acc_control = 2
   return acc_control
 
 
-def acc_hud_status_value(CS, long_active):
+def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active):
   # TODO: happens to resemble the ACC control value for now, but extend this for init
-  return acc_control_value(CS, long_active)
+  return acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active)
 
 
 def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
