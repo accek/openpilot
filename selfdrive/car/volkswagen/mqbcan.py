@@ -156,9 +156,9 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, set_speed_rea
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
     "ACC_Wunschgeschw_erreicht": acc_hud_status == 3 and set_speed < 250 and set_speed_reached,
     "ACC_Gesetzte_Zeitluecke": target_distance_bars + 1,
-    "ACC_Display_Prio": 3,
+    "ACC_Display_Prio": 2,
     "ACC_Abstandsindex": lead_distance,
-    "ACC_Tachokranz": acc_hud_status == 3,
+    "ACC_Tachokranz": acc_hud_status in (3, 4),
   }
 
   return packer.make_can_msg("ACC_02", bus, values)

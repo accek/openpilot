@@ -66,9 +66,9 @@ class CarController(CarControllerBase):
     self.send_count = 0
 
   def update(self, CC, CS, now_nanos):
-    if not self.CP.pcmCruiseSpeed:
-      self.sm.update(0)
+    self.sm.update(0)
 
+    if not self.CP.pcmCruiseSpeed:
       if self.sm.updated['longitudinalPlanSP']:
         self.v_tsc_state = self.sm['longitudinalPlanSP'].visionTurnControllerState
         self.slc_state = self.sm['longitudinalPlanSP'].speedLimitControlState
@@ -343,7 +343,7 @@ class CarController(CarControllerBase):
     distance = None
     if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
       distance = lead_one.dRel
-    if lead_two.status:
+    elif lead_two.status:
       distance = lead_two.dRel
     if distance is not None:
       return round(min(1.0, distance / v_ego / max_relative_time) * max_value)
