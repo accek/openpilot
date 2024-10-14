@@ -51,7 +51,7 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, mads_enabled, lat_acti
       "LDW_DLC",                # Lane departure, distance to line crossing
       "LDW_TLC",                # Lane departure, time to line crossing
     ]}
-    stock_alert = values["LDW_Texte"]
+    stock_alert = ldw_stock_values["LDW_Texte"]
   else:
     stock_alert = 0
 
