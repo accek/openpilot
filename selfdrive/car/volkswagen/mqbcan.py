@@ -35,7 +35,7 @@ def create_tsk_update(values, stock_values):
   if acc_1:
     acc_status = acc_1["ACC_Status_ACC"]
     tsk_status = values["TSK_Status"]
-    if (acc_status in (3, 4) and tsk_status == 2) or tsk_status == 6:
+    if tsk_status >= 2 and ((acc_status in (3, 4) and tsk_status == 2) or tsk_status == 6):
       values.update({
         "TSK_Status": acc_status,
         "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
