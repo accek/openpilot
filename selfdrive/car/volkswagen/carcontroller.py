@@ -165,7 +165,7 @@ class CarController(CarControllerBase):
 
     # **** HUD Controls ***************************************************** #
 
-    if self.can_forward_message(CS, self.CCS.MSG_LKA_HUD):
+    if self.frame % self.CCP.LDW_STEP == 0 and self.can_forward_message(CS, self.CCS.MSG_LKA_HUD):
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
         hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
@@ -366,7 +366,9 @@ class CarController(CarControllerBase):
     stock_values = CS.stock_values.get(msg_name)
     if stock_values is None:
       return False
-    counter = stock_values["COUNTER"]
+    counter = stock_values.get("COUNTER")
+    if counter is None:
+      return True
     prev_counter = self.forwarded_counters.get(msg_name)
     return counter != prev_counter
 
@@ -377,9 +379,9 @@ class CarController(CarControllerBase):
         return False
       else:
         stock_values = {}
-    counter = stock_values["COUNTER"]
+    counter = stock_values.get("COUNTER")
     prev_counter = self.forwarded_counters.get(msg_name)
-    if counter == prev_counter and not ignore_counter:
+    if counter is not None and counter == prev_counter and not ignore_counter:
       return False
     self.forwarded_counters[msg_name] = counter
     new_values = stock_values.copy()
