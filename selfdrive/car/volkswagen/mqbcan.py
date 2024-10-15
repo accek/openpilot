@@ -31,6 +31,7 @@ def create_eps_update(values, ea_simulated_torque):
 
 
 def create_tsk_update(values, stock_values):
+  return values
   acc_1 = stock_values.get(MSG_ACC_1)
   if acc_1:
     acc_status = acc_1["ACC_Status_ACC"]
