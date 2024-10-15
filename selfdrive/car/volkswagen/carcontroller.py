@@ -141,7 +141,7 @@ class CarController(CarControllerBase):
       sim_frame = self.frame % (2*sim_segment_frames)
       sign = 1 if CS.out.steeringTorque >= 0 else -1
       sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
-      sim_torque = min(sim_torque, abs(2*apply_steer))
+      sim_torque = min(sim_torque, abs(2*self.apply_steer_last))
       if not self.sm.valid['driverMonitoringState'] or not self.sm.alive['driverMonitoringState'] \
           or self.sm['driverMonitoringState'].isDistracted:
         sim_torque = 0
