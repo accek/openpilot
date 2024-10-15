@@ -414,6 +414,7 @@ class MqbExtraSignals:
   # Additional signal and message lists for optional or bus-portable controllers
   fwd_radar_messages = [
     ("ACC_06", 50),                              # From J428 ACC radar control module
+    ("ACC_07", 50),                              # From J428 ACC radar control module
     ("ACC_10", 50),                              # From J428 ACC radar control module
     ("ACC_02", 17),                              # From J428 ACC radar control module
     ("ACC_04", 17),                              # From J428 ACC radar control module
