@@ -33,10 +33,13 @@ def create_eps_update(values, ea_simulated_torque):
 def create_tsk_update(values, stock_values):
   acc_1 = stock_values.get(MSG_ACC_1)
   if acc_1:
-    values.update({
-      "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
-      "TSK_Status": acc_1["ACC_Status_ACC"],
-    })
+    acc_status = acc_1["ACC_Status_ACC"]
+    tsk_status = values["TSK_Status"]
+    if acc_status in (3, 4) and tsk_status == 2:
+      values.update({
+        "TSK_Status": acc_status,
+        "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
+      })
   return values
 
 
