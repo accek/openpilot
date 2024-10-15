@@ -1,44 +1,43 @@
-def create_steering_control(packer, bus, hca_stock_values, force_stock, apply_steer, lkas_enabled):
-  values = {s: hca_stock_values[s] for s in [
-    "HCA_01_Status_HCA",
-    "HCA_01_LM_Offset",
-    "HCA_01_LM_OffSign",
-    "HCA_01_Vib_Freq",
-    "EA_ACC_Sollstatus",
-    "EA_Ruckprofil",
-    "EA_ACC_Wunschgeschwindigkeit",
-    "EA_Ruckfreigabe",
-  ]} if hca_stock_values else {
-    "EA_ACC_Wunschgeschwindigkeit": 327.36,
-  }
-  if not force_stock:
-    values.update({
-      "HCA_01_Status_HCA": 5 if lkas_enabled else 3,
-      "HCA_01_LM_Offset": abs(apply_steer),
-      "HCA_01_LM_OffSign": 1 if apply_steer < 0 else 0,
-      "HCA_01_Vib_Freq": 18,
-      "HCA_01_Sendestatus": 1 if lkas_enabled else 0,
-    })
-  return packer.make_can_msg("HCA_01", bus, values)
+MSG_STEERING = "HCA_01"
+MSG_EPS = "LH_EPS_03"
+MSG_LKA_HUD = "LDW_02"
+MSG_ACC_BUTTONS = "GRA_ACC_01"
+MSG_ACC_1 = "ACC_06"
+MSG_ACC_2 = "ACC_07"
+MSG_ACC_HUD_1 = "ACC_02"
+MSG_ACC_HUD_2 = "ACC_04"
+MSG_TSK = "TSK_06"
 
 
-def create_eps_update(packer, bus, eps_stock_values, ea_simulated_torque):
-  values = {s: eps_stock_values[s] for s in [
-    "COUNTER",                     # Sync counter value to EPS output
-    "EPS_Lenkungstyp",             # EPS rack type
-    "EPS_Berechneter_LW",          # Absolute raw steering angle
-    "EPS_BLW_QBit",
-    "EPS_VZ_BLW",                  # Raw steering angle sign
-    "EPS_HCA_Status",              # EPS HCA control status
-    "EPS_DSR_Status",              # EPS DSR (Driver Steering Recommendation) control status
-    "EPS_Lenkmoment_QBit",
-  ]}
+def create_steering_control(values, apply_steer, lkas_enabled):
+  values.setdefault("EA_ACC_Wunschgeschwindigkeit", 327.36)
+  values.update({
+    "HCA_01_Status_HCA": 5 if lkas_enabled else 3,
+    "HCA_01_LM_Offset": abs(apply_steer),
+    "HCA_01_LM_OffSign": 1 if apply_steer < 0 else 0,
+    "HCA_01_Vib_Freq": 18,
+    "HCA_01_Sendestatus": 1 if lkas_enabled else 0,
+  })
+  return values
+
+
+def create_eps_update(values, ea_simulated_torque):
   values.update({
     # Absolute driver torque input and sign, with EA inactivity mitigation
     "EPS_Lenkmoment": abs(ea_simulated_torque),
     "EPS_VZ_Lenkmoment": 1 if ea_simulated_torque < 0 else 0,
   })
-  return packer.make_can_msg("LH_EPS_03", bus, values)
+  return values
+
+
+def create_tsk_update(values, stock_values):
+  acc_1 = stock_values.get(MSG_ACC_1)
+  if acc_1:
+    values.update({
+      "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
+      "TSK_Status": acc_1["ACC_Status_ACC"],
+    })
+  return values
 
 
 def create_lka_hud_control(packer, bus, ldw_stock_values, mads_enabled, lat_active, hud_alert, hud_control):
@@ -65,22 +64,14 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, mads_enabled, lat_acti
   return packer.make_can_msg("LDW_02", bus, values)
 
 
-def create_acc_buttons_control(packer, bus, gra_stock_values, frame=0, buttons=0, cancel=False, resume=False, custom_stock_long=False):
-  values = {s: gra_stock_values[s] for s in [
-    "GRA_Hauptschalter",           # ACC button, on/off
-    "GRA_Typ_Hauptschalter",       # ACC main button type
-    "GRA_Codierung",               # ACC button configuration/coding
-    "GRA_Tip_Stufe_2",             # unknown related to stalk type
-    "GRA_ButtonTypeInfo",          # unknown related to stalk type
-  ]}
-
+def create_acc_buttons_control(values, frame=None, buttons=0, cancel=False, resume=False):
   accel_cruise = 1 if buttons == 1 else 0
   decel_cruise = 1 if buttons == 2 else 0
   resume_cruise = 1 if buttons == 3 else 0
   set_cruise = 1 if buttons == 4 else 0
 
   values.update({
-    "COUNTER": (frame + 1) % 0x10 if custom_stock_long else (gra_stock_values["COUNTER"] + 1) % 16,
+    "COUNTER": (frame + 1) % 0x10 if frame is not None else (values["COUNTER"] + 1) % 16,
     "GRA_Abbrechen": cancel,
     "GRA_Tip_Wiederaufnahme": resume or resume_cruise,
     "GRA_Tip_Setzen": set_cruise,
@@ -88,7 +79,7 @@ def create_acc_buttons_control(packer, bus, gra_stock_values, frame=0, buttons=0
     "GRA_Tip_Hoch": accel_cruise,
   })
 
-  return packer.make_can_msg("GRA_ACC_01", bus, values)
+  return values
 
 
 def acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active):
@@ -110,10 +101,8 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
   return acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active)
 
 
-def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
-  commands = []
-
-  acc_06_values = {
+def create_acc_accel_control_1(values, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+  values.update({
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
     "ACC_StartStopp_Info": acc_enabled,
@@ -124,9 +113,11 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_pos_Sollbeschl_Grad_02": 4.0 if acc_enabled else 0,  # TODO: dynamic adjustment of jerk limits
     "ACC_Anfahren": starting,
     "ACC_Anhalten": stopping,
-  }
-  commands.append(packer.make_can_msg("ACC_06", bus, acc_06_values))
+  })
+  return values
 
+
+def create_acc_accel_control_2(values, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
   if starting:
     acc_hold_type = 4  # hold release / startup
   elif esp_hold:
@@ -136,7 +127,7 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   else:
     acc_hold_type = 0
 
-  acc_07_values = {
+  values.update({
     "ACC_Anhalteweg": 0.3 if stopping else 20.46,  # Distance to stop (stopping coordinator handles terminal roll-out)
     "ACC_Freilauf_Info": 2 if acc_enabled else 0,
     "ACC_Folgebeschl": 3.02,  # Not using secondary controller accel unless and until we understand its impact
@@ -144,13 +135,12 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_Anforderung_HMS": acc_hold_type,
     "ACC_Anfahren": starting,
     "ACC_Anhalten": stopping,
-  }
-  commands.append(packer.make_can_msg("ACC_07", bus, acc_07_values))
+  })
 
-  return commands
+  return values
 
 
-def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
+def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
@@ -160,5 +150,12 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, set_speed_rea
     "ACC_Abstandsindex": lead_distance,
     "ACC_Tachokranz": acc_hud_status in (3, 4),
   }
+  return values
 
-  return packer.make_can_msg("ACC_02", bus, values)
+
+def create_acc_hud_control_2(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
+  values.update({
+    "ACC_Status_Zusatzanz": 2 if acc_hud_status == 3 and lead_distance > 0 else 0,
+  })
+  return values
+

@@ -24,7 +24,7 @@ class CarController(CarControllerBase):
     self.ext_bus = CANBUS.pt if CP.networkLocation == car.CarParams.NetworkLocation.fwdCamera else CANBUS.cam
 
     self.apply_steer_last = 0
-    self.gra_acc_counter_last = None
+    self.forwarded_counters = {}
     self.eps_timer_soft_disable_alert = False
     self.hca_frame_timer_running = 0
     self.hca_frame_same_torque = 0
@@ -79,6 +79,7 @@ class CarController(CarControllerBase):
         self.m_tsc = self.sm['longitudinalPlanSP'].turnSpeed
 
       self.v_cruise_min = VOLKSWAGEN_V_CRUISE_MIN[CS.params_list.is_metric] * (CV.KPH_TO_MPH if not CS.params_list.is_metric else 1)
+
     actuators = CC.actuators
     hud_control = CC.hudControl
     can_sends = []
@@ -129,10 +130,11 @@ class CarController(CarControllerBase):
 
       self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
       self.apply_steer_last = apply_steer
-      can_sends.append(self.CCS.create_steering_control(self.packer_pt, CANBUS.pt, CS.hca_stock_values,
-                                                        False, apply_steer, hca_enabled))
 
-    if self.frame % self.CCP.STEER_STEP == 0 and self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+      self.forward_message(CS, self.CCS.MSG_STEERING, CANBUS.pt, can_sends, self.CCS.create_steering_control,
+                           apply_steer, hca_enabled, ignore_counter=True, require_stock_values=False)
+
+    if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT and self.can_forward_message(CS, self.CCS.MSG_EPS):
       # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
       # to include small simulated inputs. See commaai/openpilot#23274 for background.
       sim_segment_frames = int(self.CCP.STEER_DRIVER_EA_SIMULATED)   # 1Nm/s
@@ -140,31 +142,38 @@ class CarController(CarControllerBase):
       sign = 1 if CS.out.steeringTorque >= 0 else -1
       sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
       sim_torque = min(sim_torque, abs(2*apply_steer))
-      if self.sm['driverMonitoringState'].isDistracted:
+      if not self.sm.valid['driverMonitoringState'] or not self.sm.alive['driverMonitoringState'] \
+          or self.sm['driverMonitoringState'].isDistracted:
         sim_torque = 0
       ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
-      can_sends.append(self.CCS.create_eps_update(self.packer_pt, CANBUS.cam, CS.eps_stock_values, ea_simulated_torque))
+      self.forward_message(CS, self.CCS.MSG_EPS, CANBUS.cam, can_sends, self.CCS.create_eps_update, ea_simulated_torque)
 
     # **** Acceleration Controls ******************************************** #
 
-    if self.frame % self.CCP.ACC_CONTROL_STEP == 0 and self.CP.openpilotLongitudinalControl:
+    if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2)):
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-      can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, CANBUS.pt, CS.acc_type, CC.longActive, accel,
-                                                         acc_control, stopping, starting, CS.esp_hold_confirmation))
+      self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, CC.longActive, accel,
+                                                         acc_control, stopping, starting, CS.esp_hold_confirmation)
+      self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, CC.longActive, accel,
+                                                         acc_control, stopping, starting, CS.esp_hold_confirmation)
+
+    if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
+      self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS. CS.acc_type, CC.longActive, accel,
+                                                         acc_control, stopping, starting, CS.esp_hold_confirmation)
 
     # **** HUD Controls ***************************************************** #
 
-    if self.frame % self.CCP.LDW_STEP == 0:
+    if self.can_forward_message(CS, self.CCS.MSG_LKA_HUD):
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
         hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
-      can_sends.append(self.CCS.create_lka_hud_control(self.packer_pt, CANBUS.pt, CS.ldw_stock_values, CS.madsEnabled,
-                                                       CC.latActive, hud_alert, hud_control))
+      self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends, self.CCS.create_lka_hud_control,
+                           CS.ldw_stock_values, CS.madsEnabled, CC.latActive, hud_alert, hud_control)
 
-    if self.frame % self.CCP.ACC_HUD_STEP == 0 and self.CP.openpilotLongitudinalControl:
+    if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2)):
       lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal) \
         if self.sm.valid['radarState'] and self.sm.alive['radarState'] else 0
       acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
@@ -172,15 +181,19 @@ class CarController(CarControllerBase):
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
       current_speed = CS.out.vEgo * CV.MS_TO_KPH
       set_speed_reached = abs(set_speed - current_speed) <= 3
-      can_sends.append(self.CCS.create_acc_hud_control(self.packer_pt, CANBUS.pt, acc_hud_status, set_speed,
-                                                       set_speed_reached, lead_distance, hud_control.leadDistanceBars))
+      self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_1,
+                           acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
+      self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_2,
+                           acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
 
     # **** Stock ACC Button Controls **************************************** #
 
-    gra_send_ready = self.CP.pcmCruise and CS.gra_stock_values["COUNTER"] != self.gra_acc_counter_last
-    if gra_send_ready and (CC.cruiseControl.cancel or CC.cruiseControl.resume):
-      can_sends.append(self.CCS.create_acc_buttons_control(self.packer_pt, self.ext_bus, CS.gra_stock_values,
-                                                           cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume))
+    if self.CP.pcmCruise and (CC.cruiseControl.cancel or CC.cruiseControl.resume):
+      self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
+                           cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume)
+    elif self.CP.openpilotLongitudinalControl:
+      self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends)
+
     if not (CC.cruiseControl.cancel or CC.cruiseControl.resume) and CS.out.cruiseState.enabled:
       if not self.CP.pcmCruiseSpeed:
         self.cruise_button = self.get_cruise_buttons(CS, CC.vCruise)
@@ -196,8 +209,8 @@ class CarController(CarControllerBase):
           elif self.acc_type == 1:
             self.cruise_button = 3 if self.cruise_button == 1 else 4  # resume, set
           if self.frame % self.CCP.BTN_STEP == 0:
-            can_sends.append(self.CCS.create_acc_buttons_control(self.packer_pt, self.ext_bus, CS.gra_stock_values, frame=(self.frame // self.CCP.BTN_STEP),
-                                                                 buttons=self.cruise_button, custom_stock_long=True))
+            self.forward_message(self.CCS.MSG_ACC_BUTTONS, self.ext_bus, can_sends, self.CCS.create_acc_buttons_control,
+                                 frame=(self.frame // self.CCP.BTN_STEP), buttons=self.cruise_button, ignore_counter=True)
             self.send_count += 1
         else:
           self.send_count = 0
@@ -207,7 +220,6 @@ class CarController(CarControllerBase):
     new_actuators.steer = self.apply_steer_last / self.CCP.STEER_MAX
     new_actuators.steerOutputCan = self.apply_steer_last
 
-    self.gra_acc_counter_last = CS.gra_stock_values["COUNTER"]
     self.v_set_dis_prev = self.v_set_dis
     self.frame += 1
     return new_actuators, can_sends
@@ -350,3 +362,32 @@ class CarController(CarControllerBase):
       return round(min(1.0, distance / v_ego / max_relative_time) * max_value)
     else:
       return max_value if hud_control.leadVisible else 0
+
+  def can_forward_message(self, CS, msg_name):
+    stock_values = CS.stock_values.get(msg_name)
+    if stock_values is None:
+      return False
+    counter = stock_values["COUNTER"]
+    prev_counter = self.forwarded_counters.get(msg_name)
+    return counter != prev_counter
+
+  def forward_message(self, CS, msg_name, to_bus, can_sends, hook=None, *args, ignore_counter=False, require_stock_values=True, **kwargs):
+    stock_values = CS.stock_values.get(msg_name)
+    if stock_values is None:
+      if require_stock_values:
+        return False
+      else:
+        stock_values = {}
+    counter = stock_values["COUNTER"]
+    prev_counter = self.forwarded_counters.get(msg_name)
+    if counter == prev_counter and not ignore_counter:
+      return False
+    self.forwarded_counters[msg_name] = counter
+    new_values = stock_values.copy()
+    new_values.pop("CHECKSUM")
+    new_values.pop("COUNTER")
+    if hook is not None:
+      new_values = hook(new_values, *args, **kwargs)
+      if new_values is None:
+        return False
+    can_sends.append(self.packer_pt.make_can_msg(msg_name, to_bus, new_values))

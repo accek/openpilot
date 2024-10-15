@@ -17,8 +17,7 @@ class CarState(CarStateBase):
     self.button_states = {button.event_type: False for button in self.CCP.BUTTONS}
     self.esp_hold_confirmation = False
     self.upscale_lead_car_signal = False
-    self.eps_stock_values = False
-    self.hca_stock_values = False
+    self.stock_values = {}
 
   def create_button_events(self, pt_cp, buttons):
     button_events = []
@@ -65,9 +64,9 @@ class CarState(CarStateBase):
     ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status, motor_running)
 
     # VW Emergency Assist status tracking and mitigation
-    self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
+    self.update_stock_values("LH_EPS_03", pt_cp)
     if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-      self.hca_stock_values = cam_cp.vl["HCA_01"]
+      self.update_stock_values("HCA_01", cam_cp)
       ret.carFaultedNonCritical = bool(cam_cp.vl["HCA_01"]["EA_Ruckfreigabe"]) or cam_cp.vl["HCA_01"]["EA_ACC_Sollstatus"] > 0
 
     # Update gas, brakes, and gearshift.
@@ -110,7 +109,7 @@ class CarState(CarStateBase):
 
     # Consume factory LDW data relevant for factory SWA (Lane Change Assist)
     # and capture it for forwarding to the blind spot radar controller
-    self.ldw_stock_values = cam_cp.vl["LDW_02"]
+    self.update_stock_values("LDW_02", cam_cp)
 
     # Stock FCW is considered active if the release bit for brake-jerk warning
     # is set. Stock AEB considered active if the partial braking or target
@@ -151,11 +150,19 @@ class CarState(CarStateBase):
       if ret.cruiseState.speed > 90:
         ret.cruiseState.speed = 0
 
+    if self.CP.openpilotLongitudinalControl and not self.CP.spFlags & VolkswagenFlagsSP.SP_CC_ONLY_NO_RADAR:
+      # TODO: support SP_CC_ONLY_NO_RADAR
+      self.update_stock_values("ACC_02", ext_cp)
+      self.update_stock_values("ACC_04", ext_cp)
+      self.update_stock_values("ACC_06", ext_cp)
+      self.update_stock_values("ACC_07", ext_cp)
+      self.update_stock_values("TSK_06", pt_cp)
+
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough
     ret.leftBlinker = ret.leftBlinkerOn = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
     ret.rightBlinker = ret.rightBlinkerOn = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Right"])
     self.button_events = self.create_button_events(pt_cp, self.CCP.BUTTONS)
-    self.gra_stock_values = pt_cp.vl["GRA_ACC_01"]
+    self.update_stock_values("GRA_ACC_01", pt_cp)
 
     # Additional safety checks performed in CarInterface.
     ret.espDisabled = pt_cp.vl["ESP_21"]["ESP_Tastung_passiv"] != 0
@@ -231,7 +238,7 @@ class CarState(CarStateBase):
 
     # Consume factory LDW data relevant for factory SWA (Lane Change Assist)
     # and capture it for forwarding to the blind spot radar controller
-    self.ldw_stock_values = cam_cp.vl["LDW_Status"] if self.CP.networkLocation == NetworkLocation.fwdCamera else {}
+    self.update_stock_values("LDW_Status", cam_cp)
 
     # Stock FCW is considered active if the release bit for brake-jerk warning
     # is set. Stock AEB considered active if the partial braking or target
@@ -269,6 +276,9 @@ class CarState(CarStateBase):
 
     self.frame += 1
     return ret
+
+  def update_stock_values(self, msg_name, cp):
+    self.stock_values[msg_name] = cp.vl[msg_name]
 
   def update_hca_state(self, hca_status, motor_running):
     # Treat INITIALIZING and FAULT as temporary for worst likely EPS recovery time, for cars without factory Lane Assist
@@ -406,6 +416,7 @@ class MqbExtraSignals:
     ("ACC_06", 50),                              # From J428 ACC radar control module
     ("ACC_10", 50),                              # From J428 ACC radar control module
     ("ACC_02", 17),                              # From J428 ACC radar control module
+    ("ACC_04", 17),                              # From J428 ACC radar control module
   ]
   bsm_radar_messages = [
     ("SWA_01", 20),                              # From J1086 Lane Change Assist
