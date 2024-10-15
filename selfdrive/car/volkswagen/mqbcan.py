@@ -40,28 +40,16 @@ def create_tsk_update(values, stock_values):
   return values
 
 
-def create_lka_hud_control(packer, bus, ldw_stock_values, mads_enabled, lat_active, hud_alert, hud_control):
-  values = {}
-  if len(ldw_stock_values):
-    values = {s: ldw_stock_values[s] for s in [
-      "LDW_SW_Warnung_links",   # Blind spot in warning mode on left side due to lane departure
-      "LDW_SW_Warnung_rechts",  # Blind spot in warning mode on right side due to lane departure
-      "LDW_Seite_DLCTLC",       # Direction of most likely lane departure (left or right)
-      "LDW_DLC",                # Lane departure, distance to line crossing
-      "LDW_TLC",                # Lane departure, time to line crossing
-    ]}
-    stock_alert = ldw_stock_values["LDW_Texte"]
-  else:
-    stock_alert = 0
-
+def create_lka_hud_control(values, mads_enabled, lat_active, hud_alert, hud_control):
   values.update({
     "LDW_Status_LED_gelb": 1 if mads_enabled else 0,
     "LDW_Status_LED_gruen": 1 if lat_active else 0,
     "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + hud_control.leftLaneVisible,
     "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + hud_control.rightLaneVisible,
-    "LDW_Texte": hud_alert if hud_alert > 0 else stock_alert,
   })
-  return packer.make_can_msg("LDW_02", bus, values)
+  if hud_alert > 0:
+    values["LDW_Texte"] = hud_alert
+  return values
 
 
 def create_acc_buttons_control(values, frame=None, buttons=0, cancel=False, resume=False):
