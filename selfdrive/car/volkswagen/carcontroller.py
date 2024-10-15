@@ -386,8 +386,8 @@ class CarController(CarControllerBase):
     self.forwarded_counters[msg_name] = counter
     new_values = stock_values.copy()
     new_values.pop("CHECKSUM", None)
-    if ignore_counter:
-      new_values.pop("COUNTER", None)
+    #if ignore_counter:
+    new_values.pop("COUNTER", None)
     if hook is not None:
       new_values = hook(new_values, *args, **kwargs)
       if new_values is None:
