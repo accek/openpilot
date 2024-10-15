@@ -161,8 +161,7 @@ class CarController(CarControllerBase):
                                                          acc_control, stopping, starting, CS.esp_hold_confirmation)
 
     if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
-      self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS. CS.acc_type, CC.longActive, accel,
-                                                         acc_control, stopping, starting, CS.esp_hold_confirmation)
+      self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
 
     # **** HUD Controls ***************************************************** #
 
