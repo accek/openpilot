@@ -31,13 +31,15 @@ def create_eps_update(values, ea_simulated_torque):
 
 
 def create_tsk_update(values, stock_values):
+  # Simulate TSK confirming the requested ACC status, even if we override it.
+  # TODO(accek): This is a temporary workaround until we understand the TSK protocol;
+  #              replace it with never activating stock ACC, but keeping Front Assist
+  #              happy.
   acc_1 = stock_values.get(MSG_ACC_1)
   if acc_1:
-    acc_status = acc_1["ACC_Status_ACC"]
-    tsk_status = values["TSK_Status"]
-    if tsk_status >= 2 and ((acc_status in (3, 4) and tsk_status == 2) or tsk_status == 6):
+    if values["TSK_Status"] in (2, 3, 4, 5):
       values.update({
-        "TSK_Status": acc_status,
+        "TSK_Status": acc_1["ACC_Status_ACC"],
         "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
       })
   return values
@@ -45,7 +47,7 @@ def create_tsk_update(values, stock_values):
 
 def create_lka_hud_control(values, mads_enabled, lat_active, hud_alert, hud_control):
   values.update({
-    "LDW_Status_LED_gelb": 1 if mads_enabled else 0,
+    "LDW_Status_LED_gelb": 1 if mads_enabled and not lat_active else 0,
     "LDW_Status_LED_gruen": 1 if lat_active else 0,
     "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + hud_control.leftLaneVisible,
     "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + hud_control.rightLaneVisible,
@@ -132,12 +134,14 @@ def create_acc_accel_control_2(values, acc_type, acc_enabled, accel, acc_control
 
 
 def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
+  # TODO(accek): "ACC_Anzeige_Zeitluecke" should be activated after a change in target_distance_bars for a moment,
+  #              with ACC_Display_Prio set to 1
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
     "ACC_Wunschgeschw_erreicht": acc_hud_status == 3 and set_speed < 250 and set_speed_reached,
     "ACC_Gesetzte_Zeitluecke": target_distance_bars + 1,
-    "ACC_Display_Prio": 2,
+    "ACC_Display_Prio": 2 if acc_hud_status in (3, 4) else 3,
     "ACC_Abstandsindex": lead_distance,
     "ACC_Tachokranz": acc_hud_status in (3, 4),
   }
@@ -146,7 +150,7 @@ def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reache
 
 def create_acc_hud_control_2(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
   values.update({
-    "ACC_Status_Zusatzanz": 2 if acc_hud_status == 3 and lead_distance > 0 else 0,
+    "ACC_Status_Zusatzanz": 2 if acc_hud_status in (3, 4) and lead_distance > 0 else 0,
   })
   return values
 
