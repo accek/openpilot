@@ -350,8 +350,10 @@ class CarController(CarControllerBase):
     lead_one = self.sm["radarState"].leadOne
     lead_two = self.sm["radarState"].leadTwo
     v_ego = max(2.5, CS.vEgo)
+    min_value = 64 if upscale else 1
     max_value = 1023 if upscale else 15
-    max_relative_time = 3.0
+    max_relative_time = 4.0
+    min_relative_time = 1.0
 
     distance = None
     if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
@@ -359,7 +361,9 @@ class CarController(CarControllerBase):
     elif lead_two.status:
       distance = lead_two.dRel
     if distance is not None:
-      return round(min(1.0, distance / v_ego / max_relative_time) * max_value)
+      t_lead = distance / v_ego
+      scale_fraction = (t_lead - min_relative_time) / (max_relative_time - min_relative_time)
+      return round(clip(scale_fraction, 0.0, 1.0) * (max_value - min_value)) + min_value
     else:
       return max_value if hud_control.leadVisible else 0
 
