@@ -18,6 +18,7 @@ class CarState(CarStateBase):
     self.esp_hold_confirmation = False
     self.upscale_lead_car_signal = False
     self.stock_values = {}
+    self.tsk_pedal_override = False
 
   def create_button_events(self, pt_cp, buttons):
     button_events = []
@@ -139,6 +140,7 @@ class CarState(CarStateBase):
       ret.cruiseState.nonAdaptive = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
     ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
+    self.tsk_pedal_override = pt_cp.vl["TSK_06"]["TSK_Status"] == 4
 
     self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
     ret.cruiseState.standstill = self.CP.pcmCruise and self.esp_hold_confirmation

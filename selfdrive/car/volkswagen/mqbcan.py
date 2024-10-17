@@ -37,11 +37,9 @@ def create_tsk_update(values, stock_values):
   #              happy.
   acc_1 = stock_values.get(MSG_ACC_1)
   if acc_1:
-    if values["TSK_Status"] in (2, 3, 4, 5):
-      values.update({
-        "TSK_Status": acc_1["ACC_Status_ACC"],
-        "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
-      })
+    values.update({
+      "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
+    })
   return values
 
 
