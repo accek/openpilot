@@ -84,6 +84,28 @@ class CarController(CarControllerBase):
     hud_control = CC.hudControl
     can_sends = []
 
+    if CS.out.carFaultedNonCritical:
+      # Simply forward messages if the car is faulted (e.g. Emergency Assist is active)
+
+      # TODO(accek): adjust panda safety to allow this
+      self.forward_message(CS, self.CCS.MSG_STEERING, CANBUS.pt, can_sends)
+      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+        self.forward_message(CS, self.CCS.MSG_EPS, CANBUS.cam, can_sends)
+      if self.CP.openpilotLongitudinalControl:
+        self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends)
+      self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends)
+      self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends)
+
+      new_actuators = actuators.as_builder()
+      new_actuators.steer = 0
+      new_actuators.steerOutputCan = 0
+
+      return new_actuators, can_sends
+
     if not self.CP.pcmCruiseSpeed:
       if not self.last_speed_limit_sign_tap_prev and CS.params_list.last_speed_limit_sign_tap:
         self.sl_force_active_timer = self.frame
@@ -192,7 +214,8 @@ class CarController(CarControllerBase):
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
                            cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume)
     elif self.CP.openpilotLongitudinalControl:
-      self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends)
+      self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
+                           frame='auto')
 
     if not (CC.cruiseControl.cancel or CC.cruiseControl.resume) and CS.out.cruiseState.enabled:
       if not self.CP.pcmCruiseSpeed:

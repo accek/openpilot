@@ -38,17 +38,20 @@ def create_tsk_update(values, stock_values):
   acc_1 = stock_values.get(MSG_ACC_1)
   if acc_1:
     values.update({
+      "TSK_ACC_Status": 2 if values["TSK_ACC_Status"] in (2, 3, 4, 5) else values["TSK_ACC_Status"],
       "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
     })
   return values
 
 
 def create_lka_hud_control(values, mads_enabled, lat_active, hud_alert, hud_control):
+  left_lane_visible = hud_control.lanesVisible and hud_control.leftLaneVisible
+  right_lane_visible = hud_control.lanesVisible and hud_control.rightLaneVisible
   values.update({
     "LDW_Status_LED_gelb": 1 if mads_enabled and not lat_active else 0,
     "LDW_Status_LED_gruen": 1 if lat_active else 0,
-    "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + hud_control.leftLaneVisible,
-    "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + hud_control.rightLaneVisible,
+    "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + left_lane_visible,
+    "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + right_lane_visible,
   })
   if hud_alert > 0:
     values["LDW_Texte"] = hud_alert
@@ -61,8 +64,12 @@ def create_acc_buttons_control(values, frame=None, buttons=0, cancel=False, resu
   resume_cruise = 1 if buttons == 3 else 0
   set_cruise = 1 if buttons == 4 else 0
 
+  if frame is None:
+    values["COUNTER"] = (values["COUNTER"] + 1) % 16
+  elif frame != 'auto':
+    values["COUNTER"] = (frame + 1) % 16
+
   values.update({
-    "COUNTER": (frame + 1) % 0x10 if frame is not None else (values["COUNTER"] + 1) % 16,
     "GRA_Abbrechen": cancel,
     "GRA_Tip_Wiederaufnahme": resume or resume_cruise,
     "GRA_Tip_Setzen": set_cruise,
@@ -93,7 +100,7 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
 
 
 def create_acc_accel_control_1(values, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
-  values.update({
+  values = {
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
     "ACC_StartStopp_Info": acc_enabled,
@@ -104,7 +111,7 @@ def create_acc_accel_control_1(values, acc_type, acc_enabled, accel, acc_control
     "ACC_pos_Sollbeschl_Grad_02": 4.0 if acc_enabled else 0,  # TODO: dynamic adjustment of jerk limits
     "ACC_Anfahren": starting,
     "ACC_Anhalten": stopping,
-  })
+  }
   return values
 
 
@@ -118,7 +125,7 @@ def create_acc_accel_control_2(values, acc_type, acc_enabled, accel, acc_control
   else:
     acc_hold_type = 0
 
-  values.update({
+  values = {
     "ACC_Anhalteweg": 0.3 if stopping else 20.46,  # Distance to stop (stopping coordinator handles terminal roll-out)
     "ACC_Freilauf_Info": 2 if acc_enabled else 0,
     "ACC_Folgebeschl": 3.02,  # Not using secondary controller accel unless and until we understand its impact
@@ -126,7 +133,7 @@ def create_acc_accel_control_2(values, acc_type, acc_enabled, accel, acc_control
     "ACC_Anforderung_HMS": acc_hold_type,
     "ACC_Anfahren": starting,
     "ACC_Anhalten": stopping,
-  })
+  }
 
   return values
 
