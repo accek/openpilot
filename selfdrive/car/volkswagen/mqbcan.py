@@ -76,7 +76,7 @@ def create_acc_buttons_control(values, frame=None, buttons=0, cancel=False, resu
 def acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active):
   acc_control = 0
   if acc_faulted:
-    acc_control = 6
+    acc_control = 7
   elif long_active:
     if gas_pressed:
       acc_control = 4
