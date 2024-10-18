@@ -174,13 +174,13 @@ class CarController(CarControllerBase):
 
     if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2)):
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.tsk_pedal_override,
-                                               CS.out.accFaulted, CS.out.cruiseState.enabled)
+                                               CS.out.accFaulted, CC.longActive)
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-      self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, CC.longActive, accel,
+      self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
                                                          acc_control, stopping, starting, CS.esp_hold_confirmation)
-      self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, CC.longActive, accel,
+      self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
                                                          acc_control, stopping, starting, CS.esp_hold_confirmation)
 
     if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):

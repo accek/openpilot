@@ -99,7 +99,8 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
   return acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active)
 
 
-def create_acc_accel_control_1(values, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, starting, esp_hold):
+  acc_enabled = acc_control in (3, 4)
   values = {
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
@@ -115,7 +116,9 @@ def create_acc_accel_control_1(values, acc_type, acc_enabled, accel, acc_control
   return values
 
 
-def create_acc_accel_control_2(values, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, starting, esp_hold):
+  acc_enabled = acc_control in (3, 4)
+
   if starting:
     acc_hold_type = 4  # hold release / startup
   elif esp_hold:
