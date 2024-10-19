@@ -21,8 +21,13 @@ class Route:
   def __init__(self, name, data_dir=None):
     self._name = RouteName(name)
     self.files = None
+    if data_dir is None:
+      segments_dir = os.environ.get("OPENPILOT_SEGMENTS")
+      if os.path.isdir(segments_dir):
+        data_dir = segments_dir
     if data_dir is not None:
       self._segments = self._get_segments_local(data_dir)
+      print(self._segments)
     else:
       self._segments = self._get_segments_remote()
     self.max_seg_number = self._segments[-1].name.segment_num
@@ -100,6 +105,7 @@ class Route:
       fullpath = os.path.join(data_dir, f)
       explorer_match = re.match(RE.EXPLORER_FILE, f)
       op_match = re.match(RE.OP_SEGMENT_DIR, f)
+      op_flat_match = re.match(RE.OP_FLAT_SEGMENT_DIR, f)
 
       if explorer_match:
         segment_name = explorer_match.group('segment_name')
@@ -111,6 +117,12 @@ class Route:
         if segment_name.startswith(self.name.canonical_name):
           for seg_f in os.listdir(fullpath):
             segment_files[segment_name].append((os.path.join(fullpath, seg_f), seg_f))
+      elif op_flat_match and os.path.isdir(fullpath):
+        log_id = op_flat_match.group('log_id')
+        if log_id == self.name.time_str:
+          segment_name = f"{self.name.dongle_id}|{f}"
+          for seg_f in os.listdir(fullpath):
+            segment_files[segment_name].append((os.path.join(fullpath, seg_f), seg_f))
       elif f == self.name.canonical_name:
         for seg_num in os.listdir(fullpath):
           if not seg_num.isdigit():
@@ -119,6 +131,8 @@ class Route:
           segment_name = f'{self.name.canonical_name}--{seg_num}'
           for seg_f in os.listdir(os.path.join(fullpath, seg_num)):
             segment_files[segment_name].append((os.path.join(fullpath, seg_num, seg_f), seg_f))
+      elif f == self.name.dongle_id:
+        return self._get_segments_local(fullpath)
 
     segments = []
     for segment, files in segment_files.items():

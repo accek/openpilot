@@ -97,6 +97,7 @@ LogPaths = list[LogPath]
 ValidFileCallable = Callable[[LogPath], bool]
 Source = Callable[[SegmentRange, ReadMode], LogPaths]
 
+LocalUnavailableException = Exception("Local source not available")
 InternalUnavailableException = Exception("Internal source not available")
 
 
@@ -143,6 +144,21 @@ def comma_api_source(sr: SegmentRange, mode: ReadMode) -> LogPaths:
     return fn is not None
 
   return apply_strategy(mode, rlog_paths, qlog_paths, valid_file=valid_file)
+
+
+def local_source(sr: SegmentRange, mode: ReadMode, file_ext: str = "") -> LogPaths:
+  root = os.environ.get("OPENPILOT_SEGMENTS")
+  if root is None or not os.path.isdir(root):
+    raise LocalUnavailableException
+
+  def get_local_url(sr: SegmentRange, seg, file):
+    return os.path.join(root, sr.dongle_id, f"{sr.log_id}--{seg}/{file}.{file_ext}".rstrip("."))
+
+  # TODO: list instead of using static URLs to support routes with multiple file extensions
+  rlog_paths = [get_local_url(sr, seg, "rlog") for seg in sr.seg_idxs]
+  qlog_paths = [get_local_url(sr, seg, "qlog") for seg in sr.seg_idxs]
+
+  return apply_strategy(mode, rlog_paths, qlog_paths)
 
 
 def internal_source(sr: SegmentRange, mode: ReadMode, file_ext: str = "bz2") -> LogPaths:
@@ -195,7 +211,7 @@ def auto_source(sr: SegmentRange, mode=ReadMode.RLOG) -> LogPaths:
   if mode == ReadMode.SANITIZED:
     return comma_car_segments_source(sr, mode)
 
-  SOURCES: list[Source] = [internal_source, internal_source_zst, openpilotci_source, comma_api_source, comma_car_segments_source,]
+  SOURCES: list[Source] = [local_source, internal_source, internal_source_zst, openpilotci_source, comma_api_source, comma_car_segments_source,]
   exceptions = {}
 
   # for automatic fallback modes, auto_source needs to first check if rlogs exist for any source
