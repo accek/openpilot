@@ -12,7 +12,11 @@
     "**/.git": true,
     "**/.venv": true,
     "**/__pycache__": true,
-    "openpilot": true
+    "common/**/*.py": true,
+    "selfdrive/**/*.py": true,
+    "system/**/*.py": true,
+    "third_party/**/*.py": true,
+    "tools/**/*.py": true
   },
   "python.analysis.exclude": [
     "**/.git",
