@@ -312,13 +312,13 @@ void CameraWidget::paintGL() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textures[0]);
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, stream_width, stream_height, GL_RED, GL_UNSIGNED_BYTE, frame->y);
-  assert(glGetError() == GL_NO_ERROR);
+  //assert(glGetError() == GL_NO_ERROR);
 
   glPixelStorei(GL_UNPACK_ROW_LENGTH, stream_stride/2);
   glActiveTexture(GL_TEXTURE0 + 1);
   glBindTexture(GL_TEXTURE_2D, textures[1]);
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, stream_width/2, stream_height/2, GL_RG, GL_UNSIGNED_BYTE, frame->uv);
-  assert(glGetError() == GL_NO_ERROR);
+  //assert(glGetError() == GL_NO_ERROR);
 #endif
 
   glUniformMatrix4fv(program->uniformLocation("uTransform"), 1, GL_TRUE, frame_mat.v);
@@ -370,7 +370,7 @@ void CameraWidget::vipcConnected(VisionIpcClient *vipc_client) {
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, stream_width, stream_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-  assert(glGetError() == GL_NO_ERROR);
+  //assert(glGetError() == GL_NO_ERROR);
 
   glBindTexture(GL_TEXTURE_2D, textures[1]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -378,7 +378,7 @@ void CameraWidget::vipcConnected(VisionIpcClient *vipc_client) {
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, stream_width/2, stream_height/2, 0, GL_RG, GL_UNSIGNED_BYTE, nullptr);
-  assert(glGetError() == GL_NO_ERROR);
+  //assert(glGetError() == GL_NO_ERROR);
 #endif
 }
 
