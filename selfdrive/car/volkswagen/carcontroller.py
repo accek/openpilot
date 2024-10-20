@@ -178,10 +178,12 @@ class CarController(CarControllerBase):
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
+      lead_accel = self.calculate_lead_accel() \
+        if self.sm.valid['radarState'] and self.sm.alive['radarState'] else None
       self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
-                                                         acc_control, stopping, starting, CS.esp_hold_confirmation)
+                                                         acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
       self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
-                                                         acc_control, stopping, starting, CS.esp_hold_confirmation)
+                                                         acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
 
     if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
       self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
@@ -389,6 +391,15 @@ class CarController(CarControllerBase):
       return round(clip(scale_fraction, 0.0, 1.0) * (max_value - min_value)) + min_value
     else:
       return max_value if hud_control.leadVisible else 0
+
+  def calculate_lead_accel(self):
+    lead_one = self.sm["radarState"].leadOne
+    lead_two = self.sm["radarState"].leadTwo
+    if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
+      return lead_one.aRel
+    elif lead_two.status:
+      return lead_two.aRel
+    return None
 
   def can_forward_message(self, CS, msg_name):
     stock_values = CS.stock_values.get(msg_name)
