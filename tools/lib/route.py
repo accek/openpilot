@@ -23,7 +23,7 @@ class Route:
     self.files = None
     if data_dir is None:
       segments_dir = os.environ.get("OPENPILOT_SEGMENTS")
-      if os.path.isdir(segments_dir):
+      if segments_dir is not None and os.path.isdir(segments_dir):
         data_dir = segments_dir
     if data_dir is not None:
       self._segments = self._get_segments_local(data_dir)
