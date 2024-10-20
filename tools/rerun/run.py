@@ -25,7 +25,7 @@ Relevant upstream Rerun issues:
 """
 
 class Rerunner:
-  def __init__(self, route, segment_range, camera_config, enabled_services):
+  def __init__(self, route, segment_range, camera_config, enabled_services, addr):
     self.enabled_services = [s.lower() for s in enabled_services]
     self.log_all = "all" in self.enabled_services
     self.lr = LogReader(route_or_segment_name)
@@ -49,9 +49,12 @@ class Rerunner:
     if dcam:
       self.camera_readers[CameraType.dcam] = CameraReader(route.dcamera_paths(), start_time, segment_range.seg_idxs)
 
+    self.addr = addr
+
   def _start_rerun(self):
     self.blueprint = self._create_blueprint()
-    rr.init(RR_WIN, spawn=True)
+    if self.addr is None:
+      rr.init(RR_WIN, spawn=True)
 
   def _create_blueprint(self):
     blueprint = None
@@ -103,9 +106,9 @@ class Rerunner:
 
   @staticmethod
   @rr.shutdown_at_exit
-  def _process_log_msgs(blueprint, enabled_services, log_all, lr):
+  def _process_log_msgs(addr, blueprint, enabled_services, log_all, lr):
     rr.init(RR_WIN)
-    rr.connect(default_blueprint=blueprint)
+    rr.connect(addr, default_blueprint=blueprint)
 
     for msg in lr:
       rr.set_time_nanos(RR_TIMELINE_NAME, msg.logMonoTime)
@@ -123,9 +126,9 @@ class Rerunner:
 
   @staticmethod
   @rr.shutdown_at_exit
-  def _process_cam_readers(blueprint, cam_type, h, w, fr):
+  def _process_cam_readers(addr, blueprint, cam_type, h, w, fr):
     rr.init(RR_WIN)
-    rr.connect(default_blueprint=blueprint)
+    rr.connect(addr, default_blueprint=blueprint)
 
     size_hint = (h, w)
     for ts, frame in fr:
@@ -134,10 +137,10 @@ class Rerunner:
 
   def load_data(self):
     self._start_rerun()
-    if len(self.enabled_services) > 0:
-      self.lr.run_across_segments(NUM_CPUS, partial(self._process_log_msgs, self.blueprint, self.enabled_services, self.log_all))
     for cam_type, cr in self.camera_readers.items():
-      cr.run_across_segments(NUM_CPUS, partial(self._process_cam_readers, self.blueprint, cam_type, cr.h, cr.w))
+      cr.run_across_segments(NUM_CPUS, partial(self._process_cam_readers, self.addr, self.blueprint, cam_type, cr.h, cr.w))
+    if len(self.enabled_services) > 0:
+      self.lr.run_across_segments(NUM_CPUS, partial(self._process_log_msgs, self.addr, self.blueprint, self.enabled_services, self.log_all))
 
 
 if __name__ == '__main__':
@@ -153,6 +156,7 @@ if __name__ == '__main__':
                                                                 No service will be logged if not specified.\
                                                                 To log all services include 'all' as one of your services")
   parser.add_argument("--route", nargs='?', help="The route or segment name to plot")
+  parser.add_argument("--connect", metavar="IP:PORT", help="Connect to Rerun Viewer instead of starting it")
   args = parser.parse_args()
 
   if not args.demo and not args.route:
@@ -176,6 +180,6 @@ if __name__ == '__main__':
     if response.strip() != "Y":
       sys.exit()
 
-  rerunner = Rerunner(r, sr, camera_config, args.services)
+  rerunner = Rerunner(r, sr, camera_config, args.services, args.connect)
   rerunner.load_data()
 
