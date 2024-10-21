@@ -153,7 +153,8 @@ class Controls:
     self.mismatch_counter = 0
     self.cruise_mismatch_counter = 0
     self.last_blinker_frame = 0
-    self.mads_paused = False
+    self.mads_paused = True
+    self.last_mads_paused_frame = 0
     self.last_steering_pressed_frame = 0
     self.distance_traveled = 0
     self.last_functional_fan_frame = 0
@@ -179,6 +180,8 @@ class Controls:
     self.enable_mads = self.params.get_bool("EnableMads")
     self.mads_disengage_lateral_on_brake = self.params.get_bool("DisengageLateralOnBrake")
     self.mads_ndlob = self.enable_mads and not self.mads_disengage_lateral_on_brake
+    self.mads_pausing_enabled = self.params.get_bool("BelowSpeedPauseWithBlinker") or \
+      self.params.get_bool("BelowSpeedPause") or self.params.get_bool("AboveSpeedResume")
     self.process_not_running = False
     self.experimental_mode_update = False
 
@@ -616,23 +619,37 @@ class Controls:
       self.last_steering_pressed_frame = self.sm.frame
     recent_steer_pressed = (self.sm.frame - self.last_steering_pressed_frame)*DT_CTRL < 2.0
 
-    # Check lateral pause by speed & blinker
+    # Check lateral pause
     blinker = CS.leftBlinker or CS.rightBlinker
-    if (CS.belowLaneChangeSpeed and blinker) or not CS.madsEnabled:
+    if (CS.belowLaneChangeSpeed and blinker) or \
+        CS.belowMadsPauseSpeed or \
+        not CS.madsEnabled or \
+        not CS.latActive:
       self.mads_paused = True
     if CS.madsEnabled and \
         (CS.aboveMadsResumeSpeed or self.enabled_long) and \
+          not (self.sm.frame - self.last_mads_paused_frame) * DT_CTRL < 1.0 and \
           not (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 1.0 and \
           not recent_steer_pressed:
       self.mads_paused = False
+    if self.mads_paused:
+      self.last_mads_paused_frame = self.sm.frame
 
     # Check which actuators can be enabled
     standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
-    CC.latActive = (self.active or self.mads_ndlob) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
-                   (not standstill or self.joystick_mode) and CS.madsEnabled and (not CS.brakePressed or self.mads_ndlob) and \
-                   not self.mads_paused and CS.latActive and self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated and \
+    CC.latActive = (self.active or self.mads_ndlob) and \
+                   not CS.steerFaultTemporary and \
+                   not CS.steerFaultPermanent and \
+                   (not standstill or self.joystick_mode) and \
+                   CS.madsEnabled and \
+                   (not CS.brakePressed or self.mads_ndlob) and \
+                   (not self.mads_paused or not self.mads_pausing_enabled) and \
+                   CS.latActive and \
+                   self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated and \
                    not self.process_not_running
-    CC.longActive = self.enabled_long and not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
+    CC.longActive = self.enabled_long and \
+                    not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and \
+                    not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
 
     actuators = CC.actuators
     actuators.longControlState = self.LoC.long_control_state

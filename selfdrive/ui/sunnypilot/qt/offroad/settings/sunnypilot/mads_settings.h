@@ -48,6 +48,21 @@ private:
   Params params;
 };
 
+class PauseLateralSpeedWithBlinker : public OptionControlSP {
+  Q_OBJECT
+
+public:
+  PauseLateralSpeedWithBlinker();
+
+  void refresh();
+
+  signals:
+    void ToggleUpdated();
+
+private:
+  Params params;
+};
+
 class ResumeLateralSpeed : public OptionControlSP {
   Q_OBJECT
 
@@ -82,5 +97,6 @@ private:
 
   ButtonParamControlSP *dlob_settings;
   PauseLateralSpeed *pause_lateral_speed;
+  PauseLateralSpeedWithBlinker *pause_lateral_speed_with_blinker;
   ResumeLateralSpeed *resume_lateral_speed;
 };

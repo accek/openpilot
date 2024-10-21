@@ -44,8 +44,14 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
     {
       "BelowSpeedPause",
+      tr("Pause Lateral Below Speed"),
+      tr("Enable this toggle to pause lateral actuation when traveling below the desired speed selected below."),
+      "../assets/offroad/icon_blank.png",
+    },
+    {
+      "BelowSpeedPauseWithBlinker",
       tr("Pause Lateral Below Speed with Blinker"),
-      tr("Enable this toggle to pause lateral actuation with blinker when traveling below the desired speed selected below."),
+      tr("Enable this toggle to pause lateral actuation when traveling below the desired speed selected below and the blinker is active."),
       "../assets/offroad/icon_blank.png",
     },
     {
@@ -84,10 +90,15 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
   dlob_settings->showDescription();
   list->addItem(dlob_settings);
 
-  // Pause Lateral Below Speed w/ Blinker
+  // Pause Lateral Below Speed
   pause_lateral_speed = new PauseLateralSpeed();
   pause_lateral_speed->showDescription();
   connect(pause_lateral_speed, &OptionControlSP::updateLabels, pause_lateral_speed, &PauseLateralSpeed::refresh);
+
+  // Pause Lateral Below Speed w/ Blinker
+  pause_lateral_speed_with_blinker = new PauseLateralSpeedWithBlinker();
+  pause_lateral_speed_with_blinker->showDescription();
+  connect(pause_lateral_speed_with_blinker, &OptionControlSP::updateLabels, pause_lateral_speed_with_blinker, &PauseLateralSpeedWithBlinker::refresh);
 
   // Resume Lateral Above Speed
   resume_lateral_speed = new ResumeLateralSpeed();
@@ -102,6 +113,8 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
 
     if (param == "BelowSpeedPause") {
       list->addItem(pause_lateral_speed);
+    } else if (param == "BelowSpeedPauseWithBlinker") {
+      list->addItem(pause_lateral_speed_with_blinker);
     } else if (param == "AboveSpeedResume") {
       list->addItem(resume_lateral_speed);
     }
@@ -119,6 +132,13 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
   });
   pause_lateral_speed->setEnabled(toggles["BelowSpeedPause"]->isToggled());
   pause_lateral_speed->setVisible(toggles["BelowSpeedPause"]->isToggled());
+
+  connect(toggles["BelowSpeedPauseWithBlinker"], &ToggleControlSP::toggleFlipped, [=](bool state) {
+    pause_lateral_speed_with_blinker->setEnabled(state);
+    pause_lateral_speed_with_blinker->setVisible(state);
+  });
+  pause_lateral_speed_with_blinker->setEnabled(toggles["BelowSpeedPauseWithBlinker"]->isToggled());
+  pause_lateral_speed_with_blinker->setVisible(toggles["BelowSpeedPauseWithBlinker"]->isToggled());
 
   connect(toggles["AboveSpeedResume"], &ToggleControlSP::toggleFlipped, [=](bool state) {
     resume_lateral_speed->setEnabled(state);
@@ -151,7 +171,7 @@ void MadsSettings::updateToggles() {
 PauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
   "PauseLateralSpeed",
   "",
-  tr("Pause lateral actuation with blinker when traveling below the desired speed selected. Default is 20 MPH or 32 km/h."),
+  tr("Pause lateral actuation when traveling below the desired speed selected. Default is 10 MPH or 16 km/h."),
   "../assets/offroad/icon_blank.png",
   {0, 255},
   5) {
@@ -161,6 +181,28 @@ PauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
 
 void PauseLateralSpeed::refresh() {
   QString option = QString:: fromStdString(params.get("PauseLateralSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Default"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
+}
+
+PauseLateralSpeedWithBlinker::PauseLateralSpeedWithBlinker() : OptionControlSP(
+  "PauseLateralSpeedWithBlinker",
+  "",
+  tr("Pause lateral actuation when traveling below the desired speed selected and the blinker is active. Default is 20 MPH or 32 km/h."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void PauseLateralSpeedWithBlinker::refresh() {
+  QString option = QString:: fromStdString(params.get("PauseLateralSpeedWithBlinker"));
   bool is_metric = params.getBool("IsMetric");
 
   if (option == "0") {

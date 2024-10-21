@@ -242,6 +242,7 @@ struct CarState {
   rightBlinkerOn @54 :Bool;
   disengageByBrake @55 :Bool;
   belowLaneChangeSpeed @56 :Bool;
+  belowMadsPauseSpeed @63 :Bool;
   aboveMadsResumeSpeed @62 :Bool;
   accEnabled @57 :Bool;
   latActive @58 :Bool;

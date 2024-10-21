@@ -10,6 +10,7 @@ LaneChangeDirection = log.LaneChangeDirection
 
 LANE_CHANGE_SPEED_MIN = 20 * CV.MPH_TO_MS
 LANE_CHANGE_TIME_MAX = 10.
+MADS_PAUSE_SPEED = 10 * CV.MPH_TO_MS
 MADS_RESUME_SPEED = 40 * CV.MPH_TO_MS
 
 DESIRES = {
@@ -44,6 +45,11 @@ AUTO_LANE_CHANGE_TIMER = {
 
 
 def get_min_lateral_speed(value: int, is_metric: bool, default: float = LANE_CHANGE_SPEED_MIN):
+  speed: float = default if value == 0 else value * CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS
+  return speed
+
+
+def get_mads_pause_speed(value: int, is_metric: bool, default: float = MADS_PAUSE_SPEED):
   speed: float = default if value == 0 else value * CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS
   return speed
 

@@ -765,15 +765,23 @@ Pause Steering: ALC will be paused after the brake pedal is manually pressed.</s
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Enable this toggle to pause lateral actuation with blinker when traveling below the desired speed selected below.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Resume Lateral Above Speed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Enable this toggle to resume lateral actuation when traveling above the desired speed selected below if lanes are visible.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pause Lateral Below Speed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable this toggle to pause lateral actuation when traveling below the desired speed selected below.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable this toggle to pause lateral actuation when traveling below the desired speed selected below and the blinker is active.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1271,7 +1279,26 @@ Warning: You are on a metered connection!</source>
 <context>
     <name>PauseLateralSpeed</name>
     <message>
-        <source>Pause lateral actuation with blinker when traveling below the desired speed selected. Default is 20 MPH or 32 km/h.</source>
+        <source>Default</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>km/h</source>
+        <translation type="unfinished">km/h</translation>
+    </message>
+    <message>
+        <source>mph</source>
+        <translation type="unfinished">mph</translation>
+    </message>
+    <message>
+        <source>Pause lateral actuation when traveling below the desired speed selected. Default is 10 MPH or 16 km/h.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PauseLateralSpeedWithBlinker</name>
+    <message>
+        <source>Pause lateral actuation when traveling below the desired speed selected and the blinker is active. Default is 20 MPH or 32 km/h.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
