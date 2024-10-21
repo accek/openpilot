@@ -209,6 +209,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"UpdaterLastFetchTime", PERSISTENT},
     {"Version", PERSISTENT},
 
+    {"AboveSpeedResume", PERSISTENT | BACKUP},
     {"AccelPersonality", PERSISTENT | BACKUP},
     {"AccMadsCombo", PERSISTENT | BACKUP},
     {"AmapKey1", PERSISTENT | BACKUP},
@@ -299,6 +300,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"PauseLateralSpeed", PERSISTENT | BACKUP},
     {"QuietDrive", PERSISTENT | BACKUP},
     {"RoadEdge", PERSISTENT | BACKUP},
+    {"ResumeLateralSpeed", PERSISTENT | BACKUP},
     {"ReverseAccChange", PERSISTENT | BACKUP},
     {"ReverseDmCam", PERSISTENT | BACKUP},
     {"ScreenRecorder", PERSISTENT | BACKUP},

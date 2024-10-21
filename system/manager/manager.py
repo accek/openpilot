@@ -43,6 +43,7 @@ def manager_init() -> None:
     ("OpenpilotEnabledToggle", "1"),
     ("LongitudinalPersonality", str(custom.LongitudinalPersonalitySP.standard)),
 
+    ("AboveSpeedResume", "0"),
     ("AccelPersonality", str(custom.AccelerationPersonality.stock)),
     ("AccMadsCombo", "1"),
     ("AutoLaneChangeTimer", "0"),
@@ -86,6 +87,7 @@ def manager_init() -> None:
     ("OnroadSettings", "1"),
     ("PathOffset", "0"),
     ("PauseLateralSpeed", "0"),
+    ("ResumeLateralSpeed", "0"),
     ("ReverseAccChange", "0"),
     ("ScreenRecorder", "1"),
     ("ShowDebugUI", "1"),
