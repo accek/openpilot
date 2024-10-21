@@ -249,6 +249,7 @@ struct CarState {
   gapAdjustCruiseTr @59 :Int32;
   endToEndLong @60 :Bool;
   customStockLong @61 :CustomStockLong;
+  screenBrightness @64 :Float32; # screen brightness from 0.0 to 1.0
 
   struct CustomStockLong {
     cruiseButton @0 :Int16;

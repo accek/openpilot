@@ -196,7 +196,9 @@ void update_state(UIState *s) {
   if (sm.updated("carParams")) {
     scene.longitudinal_control = sm["carParams"].getCarParams().getOpenpilotLongitudinalControl();
   }
-  if (sm.updated("wideRoadCameraState")) {
+  if (sm.updated("carState") and sm["carState"].getCarState().getScreenBrightness() > 0) {
+    scene.light_sensor = 100.0f * std::min(1.0f, sm["carState"].getCarState().getScreenBrightness());
+  } else if (sm.updated("wideRoadCameraState")) {
     auto cam_state = sm["wideRoadCameraState"].getWideRoadCameraState();
     float scale = (cam_state.getSensor() == cereal::FrameData::ImageSensor::AR0231) ? 6.0f : 1.0f;
     scene.light_sensor = std::max(100.0f - scale * cam_state.getExposureValPercent(), 0.0f);
@@ -340,7 +342,7 @@ void Device::updateBrightness(const UIState &s) {
     clipped_brightness = std::clamp(100.0f * clipped_brightness, 10.0f, 100.0f);
   }
   RETURN_IF_SUNNYPILOT
-  
+
   int brightness = brightness_filter.update(clipped_brightness);
   if (!awake) {
     brightness = 0;

@@ -174,6 +174,9 @@ class CarState(CarStateBase):
     # Digital instrument clusters expect the ACC HUD lead car distance to be scaled differently
     self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])
 
+    # Screen brightness
+    ret.screenBrightness = pt_cp.vl["Dimmung_01"]["DI_KL_58xd"] / 100.0
+
     self.frame += 1
     return ret
 
@@ -315,6 +318,7 @@ class CarState(CarStateBase):
       ("Gateway_72", 10),   # From J533 CAN gateway (aggregated data)
       ("Motor_14", 10),     # From J623 Engine control module
       ("Airbag_02", 5),     # From J234 Airbag control module
+      ("Dimmung_01", 5),    # From J533 CAN gateway
       ("Kombi_01", 2),      # From J285 Instrument cluster
       ("Blinkmodi_02", 1),  # From J519 BCM (sent at 1Hz when no lights active, 50Hz when active)
       ("Kombi_03", 0),      # From J285 instrument cluster (not present on older cars, 1Hz when present)
