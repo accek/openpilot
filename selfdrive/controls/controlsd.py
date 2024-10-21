@@ -612,11 +612,18 @@ class Controls:
     CC = car.CarControl.new_message()
     CC.enabled = self.enabled
 
+    if CS.steeringPressed:
+      self.last_steering_pressed_frame = self.sm.frame
+    recent_steer_pressed = (self.sm.frame - self.last_steering_pressed_frame)*DT_CTRL < 2.0
+
     # Check lateral pause by speed & blinker
     blinker = CS.leftBlinker or CS.rightBlinker
     if (CS.belowLaneChangeSpeed and blinker) or not CS.madsEnabled:
       self.mads_paused = True
-    if CS.madsEnabled and (CS.aboveMadsResumeSpeed or self.enabled_long) and not (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 1.0:
+    if CS.madsEnabled and \
+        (CS.aboveMadsResumeSpeed or self.enabled_long) and \
+          not (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 1.0 and \
+          not recent_steer_pressed:
       self.mads_paused = False
 
     # Check which actuators can be enabled
@@ -684,10 +691,6 @@ class Controls:
         lac_log.steeringAngleDeg = CS.steeringAngleDeg
         lac_log.output = actuators.steer
         lac_log.saturated = abs(actuators.steer) >= 0.9
-
-    if CS.steeringPressed:
-      self.last_steering_pressed_frame = self.sm.frame
-    recent_steer_pressed = (self.sm.frame - self.last_steering_pressed_frame)*DT_CTRL < 2.0
 
     # Send a "steering required alert" if saturation count has reached the limit
     if lac_log.active and not recent_steer_pressed and not self.CP.notCar and CS.madsEnabled:
