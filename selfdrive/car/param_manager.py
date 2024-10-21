@@ -8,6 +8,7 @@ class ParamManager:
     self._params_list: SimpleNamespace = self._create_namespace({
       "acc_mads_combo": False,
       "below_speed_pause": False,
+      "above_speed_resume": False,
       "experimental_mode": False,
       "hyundai_radar_tracks_available": False,
       "hyundai_radar_tracks_available_cache": False,
@@ -16,6 +17,7 @@ class ParamManager:
       "hyundai_cruise_main_default": False,
       "mads_main_toggle": False,
       "pause_lateral_speed": 0,
+      "resume_lateral_speed": 0,
       "reverse_acc_change": False,
       "reverse_dm_cam": False,
       "speed_limit_control_enabled": False,
@@ -37,6 +39,7 @@ class ParamManager:
     self._params_list = self._create_namespace({
       "acc_mads_combo": params.get_bool("AccMadsCombo"),
       "below_speed_pause": params.get_bool("BelowSpeedPause"),
+      "above_speed_resume": params.get_bool("AboveSpeedResume"),
       "experimental_mode": params.get_bool("ExperimentalMode"),
       "hyundai_radar_tracks_available": params.get_bool("HyundaiRadarTracksAvailable"),
       "hyundai_radar_tracks_available_cache": params.get_bool("HyundaiRadarTracksAvailableCache"),
@@ -45,6 +48,7 @@ class ParamManager:
       "hyundai_cruise_main_default": params.get_bool("HyundaiCruiseMainDefault"),
       "mads_main_toggle": params.get_bool("MadsCruiseMain"),
       "pause_lateral_speed": int(params.get("PauseLateralSpeed", encoding="utf8")),
+      "resume_lateral_speed": int(params.get("ResumeLateralSpeed", encoding="utf8")),
       "reverse_acc_change": params.get_bool("ReverseAccChange"),
       "reverse_dm_cam": params.get_bool("ReverseDmCam"),
       "speed_limit_control_enabled": params.get_bool("EnableSlc"),

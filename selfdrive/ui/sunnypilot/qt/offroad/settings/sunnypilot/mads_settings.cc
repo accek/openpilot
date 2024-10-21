@@ -43,6 +43,18 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
   // param, title, desc, icon
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
     {
+      "BelowSpeedPause",
+      tr("Pause Lateral Below Speed with Blinker"),
+      tr("Enable this toggle to pause lateral actuation with blinker when traveling below the desired speed selected below."),
+      "../assets/offroad/icon_blank.png",
+    },
+    {
+      "AboveSpeedResume",
+      tr("Resume Lateral Above Speed"),
+      tr("Enable this toggle to resume lateral actuation when traveling above the desired speed selected below if lanes are visible."),
+      "../assets/offroad/icon_blank.png",
+    },
+    {
       "AccMadsCombo",
       tr("Enable ACC+MADS with RES+/SET-"),
       QString("%1<br>"
@@ -72,11 +84,27 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
   dlob_settings->showDescription();
   list->addItem(dlob_settings);
 
+  // Pause Lateral Below Speed w/ Blinker
+  pause_lateral_speed = new PauseLateralSpeed();
+  pause_lateral_speed->showDescription();
+  connect(pause_lateral_speed, &OptionControlSP::updateLabels, pause_lateral_speed, &PauseLateralSpeed::refresh);
+
+  // Resume Lateral Above Speed
+  resume_lateral_speed = new ResumeLateralSpeed();
+  resume_lateral_speed->showDescription();
+  connect(resume_lateral_speed, &OptionControlSP::updateLabels, resume_lateral_speed, &ResumeLateralSpeed::refresh);
+
   for (auto &[param, title, desc, icon] : toggle_defs) {
     auto toggle = new ParamControlSP(param, title, desc, icon, this);
 
     list->addItem(toggle);
     toggles[param.toStdString()] = toggle;
+
+    if (param == "BelowSpeedPause") {
+      list->addItem(pause_lateral_speed);
+    } else if (param == "AboveSpeedResume") {
+      list->addItem(resume_lateral_speed);
+    }
 
     // trigger offroadTransition when going onroad/offroad
     connect(uiStateSP(), &UIStateSP::offroadTransition, toggle, &ParamControlSP::setEnabled);
@@ -84,6 +112,20 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
 
   // trigger offroadTransition when going onroad/offroad
   connect(uiStateSP(), &UIStateSP::offroadTransition, dlob_settings, &ButtonParamControlSP::setEnabled);
+
+  connect(toggles["BelowSpeedPause"], &ToggleControlSP::toggleFlipped, [=](bool state) {
+    pause_lateral_speed->setEnabled(state);
+    pause_lateral_speed->setVisible(state);
+  });
+  pause_lateral_speed->setEnabled(toggles["BelowSpeedPause"]->isToggled());
+  pause_lateral_speed->setVisible(toggles["BelowSpeedPause"]->isToggled());
+
+  connect(toggles["AboveSpeedResume"], &ToggleControlSP::toggleFlipped, [=](bool state) {
+    resume_lateral_speed->setEnabled(state);
+    resume_lateral_speed->setVisible(state);
+  });
+  resume_lateral_speed->setEnabled(toggles["AboveSpeedResume"]->isToggled());
+  resume_lateral_speed->setVisible(toggles["AboveSpeedResume"]->isToggled());
 
   main_layout->addWidget(new ScrollViewSP(list, this));
 }
@@ -104,4 +146,48 @@ void MadsSettings::updateToggles() {
   toggles["AccMadsCombo"]->setEnabled(enable_mads);
   toggles["MadsCruiseMain"]->setEnabled(enable_mads);
   dlob_settings->setEnabled(enabled);
+}
+
+PauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
+  "PauseLateralSpeed",
+  "",
+  tr("Pause lateral actuation with blinker when traveling below the desired speed selected. Default is 20 MPH or 32 km/h."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void PauseLateralSpeed::refresh() {
+  QString option = QString:: fromStdString(params.get("PauseLateralSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Default"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
+}
+
+ResumeLateralSpeed::ResumeLateralSpeed() : OptionControlSP(
+  "ResumeLateralSpeed",
+  "",
+  tr("Resume lateral actuation when traveling above the desired speed selected. Default is 40 MPH or 64 km/h."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void ResumeLateralSpeed::refresh() {
+  QString option = QString:: fromStdString(params.get("ResumeLateralSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Default"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
 }

@@ -33,6 +33,36 @@ Last updated: July 29, 2024
 #include "selfdrive/ui/sunnypilot/qt/widgets/controls.h"
 #include "selfdrive/ui/sunnypilot/qt/widgets/scrollview.h"
 
+class PauseLateralSpeed : public OptionControlSP {
+  Q_OBJECT
+
+public:
+  PauseLateralSpeed();
+
+  void refresh();
+
+  signals:
+    void ToggleUpdated();
+
+private:
+  Params params;
+};
+
+class ResumeLateralSpeed : public OptionControlSP {
+  Q_OBJECT
+
+public:
+  ResumeLateralSpeed();
+
+  void refresh();
+
+  signals:
+    void ToggleUpdated();
+
+private:
+  Params params;
+};
+
 class MadsSettings : public QWidget {
   Q_OBJECT
 
@@ -51,4 +81,6 @@ private:
   std::map<std::string, ParamControlSP*> toggles;
 
   ButtonParamControlSP *dlob_settings;
+  PauseLateralSpeed *pause_lateral_speed;
+  ResumeLateralSpeed *resume_lateral_speed;
 };

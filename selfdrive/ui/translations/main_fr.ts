@@ -703,14 +703,6 @@ Please use caution when using this feature. Only use the blinker when traffic an
         <translation type="unfinished">Retour</translation>
     </message>
     <message>
-        <source>Pause Lateral Below Speed with Blinker</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable this toggle to pause lateral actuation with blinker when traveling below the desired speed selected below.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Auto Lane Change: Delay with Blind Spot</source>
         <translation type="unfinished"></translation>
     </message>
@@ -766,6 +758,22 @@ Please use caution when using this feature. Only use the blinker when traffic an
 
 Remain Active: ALC will remain active even after the brake pedal is pressed.
 Pause Steering: ALC will be paused after the brake pedal is manually pressed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pause Lateral Below Speed with Blinker</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable this toggle to pause lateral actuation with blinker when traveling below the desired speed selected below.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resume Lateral Above Speed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable this toggle to resume lateral actuation when traveling above the desired speed selected below if lanes are visible.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1441,6 +1449,25 @@ Cela peut prendre jusqu&apos;à une minute.</translation>
     <message>
         <source>System reset triggered. Press confirm to erase all content and settings. Press cancel to resume boot.</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ResumeLateralSpeed</name>
+    <message>
+        <source>Resume lateral actuation when traveling above the desired speed selected. Default is 40 MPH or 64 km/h.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Default</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>km/h</source>
+        <translation type="unfinished">km/h</translation>
+    </message>
+    <message>
+        <source>mph</source>
+        <translation type="unfinished">mi/h</translation>
     </message>
 </context>
 <context>
