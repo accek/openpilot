@@ -173,8 +173,10 @@ class CarController(CarControllerBase):
     # **** Acceleration Controls ******************************************** #
 
     if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2)):
+      cancel_pressed = any(be.type == ButtonType.cancelCruise for be in CS.out.buttonEvents)
+      acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CC.cruiseControl.override,
-                                               CS.out.accFaulted, CC.longActive)
+                                               CS.out.accFaulted, acc_active)
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
