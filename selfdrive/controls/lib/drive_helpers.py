@@ -155,7 +155,7 @@ class VCruiseHelper:
       return
 
     # Don't adjust speed if we've enabled since the button was depressed (some ports enable on rising edge)
-    if not self.button_change_states[button_type]["enabled"]:
+    if enabled and not self.button_change_states[button_type]["enabled"]:
       return
 
     pressed_value = (1 if long_press else v_cruise_delta_mltplr) if reverse_acc else (v_cruise_delta_mltplr if long_press else 1)
