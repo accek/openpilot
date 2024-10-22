@@ -40,6 +40,8 @@ class CarControllerParams:
   ACCEL_MAX = 2.0                          # 2.0 m/s max acceleration
   ACCEL_MIN = -3.5                         # 3.5 m/s max deceleration
 
+  STOP_ACCEL = -3.0                        # 3.0 m/s deceleration for stopping, as stock
+
   def __init__(self, CP):
     can_define = CANDefine(DBC[CP.carFingerprint]["pt"])
 

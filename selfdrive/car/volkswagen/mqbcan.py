@@ -109,7 +109,7 @@ def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, s
   values = {
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
-    "ACC_StartStopp_Info": acc_enabled,
+    "ACC_StartStopp_Info": max(int(acc_enabled), values["ACC_StartStopp_Info"]),  # stock radar may know better
     "ACC_Sollbeschleunigung_02": accel if acc_enabled else 3.01,
     "ACC_zul_Regelabw_unten": clip(accel + 0.2, 0.0, 0.2) if acc_enabled and not stopping else 0,  # TODO: even better adjustment of comfort-band
     "ACC_zul_Regelabw_oben": clip((accel + 1.5) * (0.125 / 1.5), 0, 0.125) if acc_enabled and not stopping else 0,  # TODO: even better adjustment of comfort-band
@@ -147,17 +147,16 @@ def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, s
 
 
 def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
-  # TODO(accek): "ACC_Anzeige_Zeitluecke" should be activated after a new lead appears or the ACC is activated etc.,
-  #              with ACC_Display_Prio set to 1,
-  values = {
+  # TODO(accek): "ACC_Anzeige_Zeitluecke" support
+  values.update({
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
     "ACC_Wunschgeschw_erreicht": acc_hud_status == 3 and set_speed < 250 and set_speed_reached,
     "ACC_Gesetzte_Zeitluecke": target_distance_bars + 1,
-    "ACC_Display_Prio": 2 if acc_hud_status in (3, 4) else 3,
+    "ACC_Display_Prio": min(2 if acc_hud_status in (3, 4) else 3, values["ACC_Display_Prio"]),
     "ACC_Abstandsindex": lead_distance,
     "ACC_Tachokranz": acc_hud_status in (3, 4),
-  }
+  })
   return values
 
 

@@ -174,7 +174,8 @@ class CarController(CarControllerBase):
 
     # **** Acceleration Controls ******************************************** #
 
-    if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2)):
+    accel = 0
+    if self.CP.openpilotLongitudinalControl:
       cancel_pressed = any(be.type == ButtonType.cancelCruise for be in CS.out.buttonEvents)
       acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CC.cruiseControl.override,
@@ -183,10 +184,11 @@ class CarController(CarControllerBase):
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
       lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
-      self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
-                                                         acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
-      self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
-                                                         acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
+      if self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2):
+        self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
+                                                          acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
+        self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
+                                                          acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
 
     if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
       self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
@@ -257,6 +259,7 @@ class CarController(CarControllerBase):
     new_actuators = actuators.as_builder()
     new_actuators.steer = self.apply_steer_last / self.CCP.STEER_MAX
     new_actuators.steerOutputCan = self.apply_steer_last
+    new_actuators.accel = accel
 
     self.v_set_dis_prev = self.v_set_dis
     self.frame += 1
