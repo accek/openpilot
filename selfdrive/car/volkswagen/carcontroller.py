@@ -176,7 +176,7 @@ class CarController(CarControllerBase):
 
     accel = 0
     if self.CP.openpilotLongitudinalControl:
-      cancel_pressed = any(be.type == ButtonType.cancelCruise for be in CS.out.buttonEvents)
+      cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
       acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CC.cruiseControl.override,
                                                CS.out.accFaulted, acc_active)
