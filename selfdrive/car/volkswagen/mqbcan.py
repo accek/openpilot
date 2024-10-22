@@ -8,6 +8,7 @@ MSG_ACC_1 = "ACC_06"
 MSG_ACC_2 = "ACC_07"
 MSG_ACC_HUD_1 = "ACC_02"
 MSG_ACC_HUD_2 = "ACC_04"
+MSG_ACC_HUD_2 = "ACC_13"
 MSG_TSK = "TSK_06"
 
 
@@ -104,6 +105,7 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
 def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel):
   acc_enabled = acc_control in (3, 4)
 
+  # For stock comfort bands, see https://colab.research.google.com/drive/1y80X3VBACwLfMLvUE57GV4Yv6N8JjEmG?usp=sharing
   values = {
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
@@ -125,9 +127,9 @@ def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, s
   if starting:
     acc_hold_type = 4  # hold release / startup
   elif esp_hold:
-    acc_hold_type = 3  # hold standby
-  elif stopping:
     acc_hold_type = 1  # hold request
+  elif stopping:
+    acc_hold_type = 3  # hold standby
   else:
     acc_hold_type = 0
 
@@ -145,8 +147,8 @@ def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, s
 
 
 def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
-  # TODO(accek): "ACC_Anzeige_Zeitluecke" should be activated after a change in target_distance_bars for a moment,
-  #              with ACC_Display_Prio set to 1
+  # TODO(accek): "ACC_Anzeige_Zeitluecke" should be activated after a new lead appears or the ACC is activated etc.,
+  #              with ACC_Display_Prio set to 1,
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
@@ -162,6 +164,13 @@ def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reache
 def create_acc_hud_control_2(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
   values.update({
     "ACC_Status_Zusatzanz": 2 if acc_hud_status in (3, 4) and lead_distance > 0 else 0,
+  })
+  return values
+
+
+def create_acc_hud_control_3(values, acc_hud_status, set_speed, set_speed_reached, lead_distance, target_distance_bars):
+  values.update({
+    "ACC_Tachokranz": acc_hud_status in (3, 4),
   })
   return values
 

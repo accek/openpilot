@@ -158,6 +158,7 @@ class CarState(CarStateBase):
       self.update_stock_values("ACC_04", ext_cp)
       self.update_stock_values("ACC_06", ext_cp)
       self.update_stock_values("ACC_07", ext_cp)
+      self.update_stock_values("ACC_13", ext_cp)
       self.update_stock_values("TSK_06", pt_cp)
 
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough
@@ -424,6 +425,7 @@ class MqbExtraSignals:
     ("ACC_10", 50),                              # From J428 ACC radar control module
     ("ACC_02", 17),                              # From J428 ACC radar control module
     ("ACC_04", 17),                              # From J428 ACC radar control module
+    ("ACC_13", 17),                              # From J428 ACC radar control module
   ]
   bsm_radar_messages = [
     ("SWA_01", 20),                              # From J1086 Lane Change Assist

@@ -206,7 +206,10 @@ class CarController(CarControllerBase):
       self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends, self.CCS.create_lka_hud_control,
                            CS.madsEnabled, CC.latActive, hud_alert, hud_control)
 
-    if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2)):
+    if self.CP.openpilotLongitudinalControl and (
+        self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_1) or
+        self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2) or
+        self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_3)):
       lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal, radar_state) if radar_state is not None else 0
       acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
       # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
@@ -216,6 +219,8 @@ class CarController(CarControllerBase):
       self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_1,
                            acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
       self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_2,
+                           acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
+      self.forward_message(CS, self.CCS.MSG_ACC_HUD_3, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_3,
                            acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
 
     # **** Stock ACC Button Controls **************************************** #
