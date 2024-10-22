@@ -85,6 +85,7 @@ class CarController(CarControllerBase):
     hud_control = CC.hudControl
     can_sends = []
     driver_monitoring_state = self.sm['driverMonitoringState'] if self.sm.all_checks(['driverMonitoringState']) else None
+    radar_state = self.sm['radarState'] if self.sm.all_checks(['radarState']) else None
 
     if CS.out.carFaultedNonCritical:
       # Simply forward messages if the car is faulted (e.g. Emergency Assist is active)
@@ -181,8 +182,7 @@ class CarController(CarControllerBase):
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-      lead_accel = self.calculate_lead_accel() \
-        if self.sm.valid['radarState'] and self.sm.alive['radarState'] else None
+      lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
       self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
                                                          acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
       self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
@@ -207,8 +207,7 @@ class CarController(CarControllerBase):
                            CS.madsEnabled, CC.latActive, hud_alert, hud_control)
 
     if self.CP.openpilotLongitudinalControl and (self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2)):
-      lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal) \
-        if self.sm.valid['radarState'] and self.sm.alive['radarState'] else 0
+      lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal, radar_state) if radar_state is not None else 0
       acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
       # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
@@ -380,9 +379,9 @@ class CarController(CarControllerBase):
       cruise_button = self.get_button_control(CS, self.final_speed_kph, v_cruise_kph_prev)  # MPH/KPH based button presses
     return cruise_button
 
-  def calculate_lead_distance(self, CS, hud_control, upscale):
-    lead_one = self.sm["radarState"].leadOne
-    lead_two = self.sm["radarState"].leadTwo
+  def calculate_lead_distance(self, CS, hud_control, upscale, radar_state):
+    lead_one = radar_state.leadOne
+    lead_two = radar_state.leadTwo
     v_ego = max(2.5, CS.vEgo)
     min_value = 64 if upscale else 1
     max_value = 1023 if upscale else 15
@@ -401,9 +400,9 @@ class CarController(CarControllerBase):
     else:
       return max_value if hud_control.leadVisible else 0
 
-  def calculate_lead_accel(self):
-    lead_one = self.sm["radarState"].leadOne
-    lead_two = self.sm["radarState"].leadTwo
+  def calculate_lead_accel(self, radar_state):
+    lead_one = radar_state.leadOne
+    lead_two = radar_state.leadTwo
     if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
       return lead_one.aRel
     elif lead_two.status:
