@@ -625,14 +625,12 @@ class Controls:
         not CS.madsEnabled or \
         not CS.latActive:
       self.mads_paused = True
+      self.last_mads_paused_frame = self.sm.frame
     elif CS.madsEnabled and \
         (CS.aboveMadsResumeSpeed or self.enabled_long) and \
           not (self.sm.frame - self.last_mads_paused_frame) * DT_CTRL < 1.0 and \
-          not (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 1.0 and \
           not recent_steer_pressed:
       self.mads_paused = False
-    if self.mads_paused:
-      self.last_mads_paused_frame = self.sm.frame
 
     # Check which actuators can be enabled
     standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
