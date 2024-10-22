@@ -11,6 +11,7 @@ from openpilot.selfdrive.car.volkswagen.values import CANBUS, CarControllerParam
 from openpilot.selfdrive.controls.lib.drive_helpers import VOLKSWAGEN_V_CRUISE_MIN
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
+AudibleAlert = car.CarControl.HUDControl.AudibleAlert
 LongCtrlState = car.CarControl.Actuators.LongControlState
 ButtonType = car.CarState.ButtonEvent.Type
 
@@ -83,6 +84,7 @@ class CarController(CarControllerBase):
     actuators = CC.actuators
     hud_control = CC.hudControl
     can_sends = []
+    driver_monitoring_state = self.sm['driverMonitoringState'] if self.sm.all_checks(['driverMonitoringState']) else None
 
     if CS.out.carFaultedNonCritical:
       # Simply forward messages if the car is faulted (e.g. Emergency Assist is active)
@@ -164,8 +166,7 @@ class CarController(CarControllerBase):
       sign = 1 if CS.out.steeringTorque >= 0 else -1
       sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
       sim_torque = min(sim_torque, abs(2*self.apply_steer_last))
-      if not self.sm.valid['driverMonitoringState'] or not self.sm.alive['driverMonitoringState'] \
-          or self.sm['driverMonitoringState'].isDistracted:
+      if driver_monitoring_state is not None and driver_monitoring_state.isDistracted:
         sim_torque = 0
       ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
       self.forward_message(CS, self.CCS.MSG_EPS, CANBUS.cam, can_sends, self.CCS.create_eps_update, ea_simulated_torque)
@@ -195,7 +196,13 @@ class CarController(CarControllerBase):
     if self.frame % self.CCP.LDW_STEP == 0 and self.can_forward_message(CS, self.CCS.MSG_LKA_HUD):
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
-        hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
+        hud_alert = self.CCP.LDW_MESSAGES.get(
+          {
+            AudibleAlert.none: "laneAssistTakeOver",
+            AudibleAlert.warningImmediate: "laneAssistTakeOverUrgent"
+          }.get(hud_control.audibleAlert, "laneAssistTakeOverChime"),
+          self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
+        )
       self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends, self.CCS.create_lka_hud_control,
                            CS.madsEnabled, CC.latActive, hud_alert, hud_control)
 

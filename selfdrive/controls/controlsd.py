@@ -621,12 +621,11 @@ class Controls:
 
     # Check lateral pause
     blinker = CS.leftBlinker or CS.rightBlinker
-    if (CS.belowLaneChangeSpeed and blinker) or \
-        CS.belowMadsPauseSpeed or \
+    if (not self.enabled_long and ((CS.belowLaneChangeSpeed and blinker) or CS.belowMadsPauseSpeed)) or \
         not CS.madsEnabled or \
         not CS.latActive:
       self.mads_paused = True
-    if CS.madsEnabled and \
+    elif CS.madsEnabled and \
         (CS.aboveMadsResumeSpeed or self.enabled_long) and \
           not (self.sm.frame - self.last_mads_paused_frame) * DT_CTRL < 1.0 and \
           not (self.sm.frame - self.last_blinker_frame) * DT_CTRL < 1.0 and \
@@ -840,6 +839,7 @@ class Controls:
     current_alert = self.AM.process_alerts(self.sm.frame, clear_event_types)
     if current_alert:
       hudControl.visualAlert = current_alert.visual_alert
+      hudControl.audibleAlert = current_alert.audible_alert
 
     if not self.CP.passive and self.initialized:
       CO = self.sm['carOutput']
