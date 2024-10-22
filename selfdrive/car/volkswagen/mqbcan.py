@@ -87,11 +87,10 @@ def acc_control_value(cruise_available, overriding, acc_faulted, long_active):
   acc_control = 0
   if acc_faulted:
     acc_control = 7
+  elif overriding:
+    acc_control = 4
   elif long_active:
-    if overriding:
-      acc_control = 4
-    else:
-      acc_control = 3
+    acc_control = 3
   elif cruise_available:
     acc_control = 2
   return acc_control

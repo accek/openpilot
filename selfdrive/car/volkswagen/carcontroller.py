@@ -178,17 +178,19 @@ class CarController(CarControllerBase):
     if self.CP.openpilotLongitudinalControl:
       cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
       acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
-      acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CC.cruiseControl.override,
+      acc_override = CC.cruiseControl.override and not CS.out.brakePressed and not cancel_pressed
+      acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
                                                CS.out.accFaulted, acc_active)
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
       stopping = actuators.longControlState == LongCtrlState.stopping
+      near_stop = stopping and CS.out.vEgo < self.CP.vEgoStopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
       lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
       if self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2):
         self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
-                                                          acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
+                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel)
         self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
-                                                          acc_control, stopping, starting, CS.esp_hold_confirmation, lead_accel)
+                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel)
 
     if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
       self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
@@ -213,7 +215,7 @@ class CarController(CarControllerBase):
         self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2) or
         self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_3)):
       lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal, radar_state) if radar_state is not None else 0
-      acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, CS.out.gasPressed, CS.out.accFaulted, CC.longActive)
+      acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, acc_override, CS.out.accFaulted, acc_active)
       # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
       current_speed = CS.out.vEgo * CV.MS_TO_KPH

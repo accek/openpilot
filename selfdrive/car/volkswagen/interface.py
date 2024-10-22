@@ -94,7 +94,6 @@ class CarInterface(CarInterfaceBase):
         ret.minEnableSpeed = 4.5
       ret.longitudinalTuning.kiBP = [5., 35.]
       ret.longitudinalTuning.kiV = [2.0, 1.5]
-      ret.longitudinalActuatorDelay = 0.5 # s
 
     if Params().get_bool("VwCCOnly"):
       if car_fw is not None and not any(fw.ecu == "fwdRadar" for fw in car_fw):
