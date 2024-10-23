@@ -85,7 +85,8 @@ class CarController(CarControllerBase):
     hud_control = CC.hudControl
     can_sends = []
     driver_monitoring_state = self.sm['driverMonitoringState'] if self.sm.all_checks(['driverMonitoringState']) else None
-    radar_state = self.sm['radarState'] if self.sm.all_checks(['radarState']) else None
+    if self.CP.openpilotLongitudinalControl:
+      radar_state = self.sm['radarState'] if self.sm.all_checks(['radarState']) else None
 
     if CS.out.carFaultedNonCritical:
       # Simply forward messages if the car is faulted (e.g. Emergency Assist is active)
