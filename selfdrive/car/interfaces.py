@@ -626,10 +626,10 @@ class CarInterfaceBase(ABC):
     lane_change_speed_min = get_min_lateral_speed(self.CS.params_list.pause_lateral_speed_with_blinker, self.CS.params_list.is_metric)
     cs_out.belowLaneChangeSpeed = cs_out.vEgo < lane_change_speed_min and self.CS.params_list.below_speed_pause_with_blinker
 
-    mads_pause_speed = get_mads_pause_speed(cs_out, self.CS.params_list.pause_lateral_speed, self.CS.params_list.is_metric)
+    mads_pause_speed = get_mads_pause_speed(self.CS.params_list.pause_lateral_speed, self.CS.params_list.is_metric)
     cs_out.belowMadsPauseSpeed = cs_out.vEgo < mads_pause_speed and self.CS.params_list.below_speed_pause
 
-    mads_resume_speed = get_mads_resume_speed(cs_out, self.CS.params_list.resume_lateral_speed, self.CS.params_list.is_metric)
+    mads_resume_speed = get_mads_resume_speed(self.CS.params_list.resume_lateral_speed, self.CS.params_list.is_metric)
     cs_out.aboveMadsResumeSpeed = cs_out.vEgo > mads_resume_speed and self.CS.params_list.above_speed_resume
 
     if cs_out.gearShifter in [GearShifter.park, GearShifter.reverse] or cs_out.doorOpen or \
