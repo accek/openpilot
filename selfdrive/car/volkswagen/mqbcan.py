@@ -104,11 +104,16 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
 def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel):
   acc_enabled = acc_control in (3, 4)
 
+  if acc_enabled:
+    startstop = 2 if starting else 1
+  else:
+    startstop = 0
+
   # For stock comfort bands, see https://colab.research.google.com/drive/1y80X3VBACwLfMLvUE57GV4Yv6N8JjEmG?usp=sharing
   values = {
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
-    "ACC_StartStopp_Info": max(int(acc_enabled), values["ACC_StartStopp_Info"]),  # stock radar may know better
+    "ACC_StartStopp_Info": max(startstop, values["ACC_StartStopp_Info"]),  # stock radar may know better
     "ACC_Sollbeschleunigung_02": accel if acc_enabled else 3.01,
     "ACC_zul_Regelabw_unten": clip(accel + 0.2, 0.0, 0.2) if acc_enabled and not stopping else 0,  # TODO: even better adjustment of comfort-band
     "ACC_zul_Regelabw_oben": clip((accel + 1.5) * (0.125 / 1.5), 0, 0.125) if acc_enabled and not stopping else 0,  # TODO: even better adjustment of comfort-band
