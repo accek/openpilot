@@ -1019,6 +1019,13 @@ Pause Steering: ALC will be paused after the brake pedal is manually pressed.</s
     </message>
 </context>
 <context>
+    <name>OffroadHomeSP</name>
+    <message>
+        <source>Change Preset</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>OnroadAlerts</name>
     <message>
         <source>openpilot Unavailable</source>
@@ -1313,6 +1320,25 @@ Warning: You are on a metered connection!</source>
     <message>
         <source>mph</source>
         <translation type="unfinished">mph</translation>
+    </message>
+</context>
+<context>
+    <name>Presets</name>
+    <message>
+        <source>Choose Operating Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off (Dashcam)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OpenPilot Lane Assist</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OpenPilot Lane Assist + ACC</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3118,6 +3144,14 @@ This feature must be used along with SLC, and/or V-TSC, and/or M-TSC.</source>
     </message>
     <message>
         <source>Enable the sunnypilot longitudinal control (alpha) toggle to allow Experimental mode.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Require Selecting Operating Preset at Boot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>If enabled, the device will display a profile selection dialog and will not activate until a selection is made.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

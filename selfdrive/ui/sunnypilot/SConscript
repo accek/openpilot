@@ -21,6 +21,7 @@ widgets_src = [
   "sunnypilot/qt/offroad/settings/sunnypilot/speed_limit_policy_settings.cc",
   "sunnypilot/qt/offroad/settings/sunnylink_settings.cc",
   "sunnypilot/qt/widgets/controls.cc",
+  "sunnypilot/qt/widgets/presets.cc",
   "sunnypilot/qt/widgets/scrollview.cc",
   "sunnypilot/qt/widgets/toggle.cc"
 ]
@@ -30,7 +31,7 @@ sp_maps_widgets_src = [
 ]
 
 sp_qt_util = [
-  # "#selfdrive/ui/sunnypilot/qt/api.cc", 
+  # "#selfdrive/ui/sunnypilot/qt/api.cc",
   "#selfdrive/ui/sunnypilot/qt/util.cc",
 ]
 

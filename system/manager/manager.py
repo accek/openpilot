@@ -125,6 +125,8 @@ def manager_init() -> None:
     ("LastSunnylinkPingTime", "0"),
     ("EnableGitlabRunner", "0"),
     ("EnableSunnylinkUploader", "0"),
+    ("RequirePresetAtBoot", "0"),
+    ("PresetSelected", "0"),
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat().encode('utf8')))

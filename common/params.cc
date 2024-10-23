@@ -348,6 +348,9 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"EnableGitlabRunner", PERSISTENT | BACKUP},
     {"EnableSunnylinkUploader", PERSISTENT | BACKUP},
 
+    {"PresetSelected", CLEAR_ON_MANAGER_START},
+    {"RequirePresetAtBoot", PERSISTENT | BACKUP},
+
     // PFEIFER - MAPD {{
     {"MapdVersion", PERSISTENT},
     {"RoadName", CLEAR_ON_ONROAD_TRANSITION},

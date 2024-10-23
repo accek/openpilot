@@ -28,9 +28,11 @@ Last updated: July 29, 2024
 
 #include <QStackedWidget>
 
+#include "common/params.h"
 #include "selfdrive/ui/qt/offroad/experimental_mode.h"
 #include "selfdrive/ui/qt/widgets/prime.h"
 #include "selfdrive/ui/sunnypilot/sunnypilot_main.h"
+#include "selfdrive/ui/sunnypilot/qt/widgets/presets.h"
 
 #ifdef ENABLE_MAPS
 #define LEFT_WIDGET MapSettings
@@ -43,7 +45,7 @@ void OffroadHomeSP::replaceLeftWidget(){
   new_left_widget->addWidget(new LEFT_WIDGET);
   if (!custom_mapbox)
     new_left_widget->addWidget(new PrimeAdWidget);
-    
+
   new_left_widget->setStyleSheet("border-radius: 10px;");
   new_left_widget->setCurrentIndex((uiStateSP()->hasPrime() || custom_mapbox) ? 0 : 1);
   connect(uiStateSP(), &UIStateSP::primeChanged, [=](bool prime)    {
@@ -52,7 +54,49 @@ void OffroadHomeSP::replaceLeftWidget(){
   ReplaceWidget(left_widget, new_left_widget);
 }
 
+void OffroadHomeSP::addPresetsWidget(){
+  auto* presets_widget = new Presets(this);
+  center_layout->addWidget(presets_widget);
+  connect(presets_widget, &Presets::presetSelected, [=] {
+    refresh();
+  });
+
+  presets_btn = new QPushButton(tr("Change Preset"));
+  connect(presets_btn, &QPushButton::clicked, [=]() {
+    params.putBool("PresetSelected", false);
+    refresh();
+  });
+  presets_btn->setStyleSheet(R"(
+    QPushButton {
+      font-size: 48px;
+      font-weight: 500;
+      border-radius: 10px;
+      border: 2px solid white;
+      background-color: black;
+      color: white;
+      padding: 32px;
+    }
+    QPushButton:pressed {
+      background-color: #aaa;
+    }
+  )");
+  right_column->addWidget(presets_btn);
+}
+
 OffroadHomeSP::OffroadHomeSP(QWidget* parent) : OffroadHome(parent){
   custom_mapbox = QString::fromStdString(params.get("CustomMapboxTokenSk")) != "";
   replaceLeftWidget();
+  addPresetsWidget();
+}
+
+int OffroadHomeSP::computeCenterLayoutIndex() {
+  if (params.getBool("RequirePresetAtBoot") && !params.getBool("PresetSelected")) {
+    return 3;
+  }
+  return OffroadHome::computeCenterLayoutIndex();
+}
+
+void OffroadHomeSP::refresh() {
+  OffroadHome::refresh();
+  presets_btn->setVisible(params.getBool("RequirePresetAtBoot"));
 }

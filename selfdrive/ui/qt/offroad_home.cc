@@ -38,7 +38,7 @@ OffroadHome::OffroadHome(QWidget* parent) : QFrame(parent) {
   // main content
   main_layout->addSpacing(25);
   center_layout = new QStackedLayout();
-  
+
   home_widget = new QWidget(this);
   {
     home_layout = new QHBoxLayout(home_widget);
@@ -68,7 +68,7 @@ OffroadHome::OffroadHome(QWidget* parent) : QFrame(parent) {
 
     // right: ExperimentalModeButton, SetupWidget
     QWidget* right_widget = new QWidget(this);
-    QVBoxLayout* right_column = new QVBoxLayout(right_widget);
+    right_column = new QVBoxLayout(right_widget);
     right_column->setContentsMargins(0, 0, 0, 0);
     right_widget->setFixedWidth(750);
     right_column->setSpacing(30);
@@ -130,23 +130,29 @@ void OffroadHome::hideEvent(QHideEvent *event) {
 void OffroadHome::refresh() {
   version->setText(getBrand() + " " +  QString::fromStdString(params.get("UpdaterCurrentDescription")));
 
-  bool updateAvailable = update_widget->refresh();
-  int alerts = alerts_widget->refresh();
+  update_available = update_widget->refresh();
+  alerts = alerts_widget->refresh();
 
   // pop-up new notification
-  int idx = center_layout->currentIndex();
-  if (!updateAvailable && !alerts) {
-    idx = 0;
-  } else if (updateAvailable && (!update_notif->isVisible() || (!alerts && idx == 2))) {
-    idx = 1;
-  } else if (alerts && (!alert_notif->isVisible() || (!updateAvailable && idx == 1))) {
-    idx = 2;
-  }
+  int idx = computeCenterLayoutIndex();
   center_layout->setCurrentIndex(idx);
 
-  update_notif->setVisible(updateAvailable);
+  update_notif->setVisible(update_available);
   alert_notif->setVisible(alerts);
   if (alerts) {
     alert_notif->setText(QString::number(alerts) + (alerts > 1 ? tr(" ALERTS") : tr(" ALERT")));
+  }
+}
+
+int OffroadHome::computeCenterLayoutIndex() {
+  int idx = center_layout->currentIndex();
+  if (!update_available && !alerts) {
+    return 0;
+  } else if (update_available && (!update_notif->isVisible() || (!alerts && idx == 2))) {
+    return 1;
+  } else if (alerts && (!alert_notif->isVisible() || (!update_available && idx == 1))) {
+    return 2;
+  } else {
+    return idx;
   }
 }

@@ -38,13 +38,18 @@ protected:
   QWidget* home_widget;
   QHBoxLayout *home_layout;
   QStackedWidget *left_widget;
+  QVBoxLayout *right_column;
+
+  virtual int computeCenterLayoutIndex();
+  virtual void refresh();
 
 private:
   void showEvent(QShowEvent *event) override;
   void hideEvent(QHideEvent *event) override;
-  void refresh();
 
   Params params;
+  bool update_available;
+  int alerts;
 
   QTimer* timer;
   ElidedLabel* version;

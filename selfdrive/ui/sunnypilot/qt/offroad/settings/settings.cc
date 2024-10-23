@@ -127,6 +127,12 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
       "../assets/offroad/icon_blank.png",
     },
 #endif
+    {
+      "RequirePresetAtBoot",
+      tr("Require Selecting Operating Preset at Boot"),
+      tr("If enabled, the device will display a profile selection dialog and will not activate until a selection is made."),
+      "../assets/offroad/icon_blank.png",
+    },
   };
 
 

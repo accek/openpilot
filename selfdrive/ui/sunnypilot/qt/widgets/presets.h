@@ -25,30 +25,15 @@ Last updated: July 29, 2024
 ***/
 
 #pragma once
-#include "selfdrive/ui/qt/offroad_home.h"
 
-#ifdef ENABLE_MAPS
-#include "selfdrive/ui/qt/maps/map_settings.h"
-#endif
+#include <QFrame>
 
-class OffroadHomeSP : public OffroadHome {
+class Presets : public QFrame {
   Q_OBJECT
 
 public:
-  void replaceLeftWidget();
-  void addPresetsWidget();
+  explicit Presets(QWidget* parent = 0);
 
-  explicit OffroadHomeSP(QWidget* parent = 0);
-  void refresh() override;
-
-protected:
-  int computeCenterLayoutIndex() override;
-
-private:
-  // static void replaceWidget(QWidget* old_widget, QWidget* new_widget);
-
-  QPushButton *presets_btn;
-
-  Params params;
-  bool custom_mapbox;
+signals:
+  void presetSelected();
 };
