@@ -44,8 +44,8 @@ MadsSettings::MadsSettings(QWidget* parent) : QWidget(parent) {
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
     {
       "BelowSpeedPause",
-      tr("Pause Lateral Below Speed"),
-      tr("Enable this toggle to pause lateral actuation when traveling below the desired speed selected below."),
+      tr("Pause Lateral Below Speed when Steering"),
+      tr("Enable this toggle to pause lateral actuation when traveling below the desired speed selected below and the driver is steering."),
       "../assets/offroad/icon_blank.png",
     },
     {
@@ -171,7 +171,7 @@ void MadsSettings::updateToggles() {
 PauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
   "PauseLateralSpeed",
   "",
-  tr("Pause lateral actuation when traveling below the desired speed selected. Default is 10 MPH or 16 km/h."),
+  tr("Pause lateral actuation when traveling below the desired speed selected and driver steers. Default is 10 MPH or 16 km/h."),
   "../assets/offroad/icon_blank.png",
   {0, 255},
   5) {

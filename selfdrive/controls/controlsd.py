@@ -621,7 +621,9 @@ class Controls:
 
     # Check lateral pause
     blinker = CS.leftBlinker or CS.rightBlinker
-    if (not self.enabled_long and ((CS.belowLaneChangeSpeed and blinker) or CS.belowMadsPauseSpeed)) or \
+    if (not self.enabled_long and
+          ((CS.belowLaneChangeSpeed and blinker) or CS.belowMadsPauseSpeed)
+          and CS.steeringPressed) or \
         not CS.madsEnabled or \
         not CS.latActive:
       self.mads_paused = True
