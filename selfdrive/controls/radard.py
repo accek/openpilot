@@ -150,7 +150,7 @@ def match_vision_to_track(v_ego: float, lead: capnp._DynamicStructReader, tracks
     return None
 
 
-def get_RadarState_from_vision(lead_msg: capnp._DynamicStructReader, v_ego: float, model_v_ego: float):
+def get_RadarState_from_vision(lead_msg: capnp._DynamicStructReader, v_ego: float, model_v_ego: float, a_ego: float):
   lead_v_rel_pred = lead_msg.v[0] - model_v_ego
   return {
     "dRel": float(lead_msg.x[0] - RADAR_TO_CAMERA),
@@ -158,8 +158,9 @@ def get_RadarState_from_vision(lead_msg: capnp._DynamicStructReader, v_ego: floa
     "vRel": float(lead_v_rel_pred),
     "vLead": float(v_ego + lead_v_rel_pred),
     "vLeadK": float(v_ego + lead_v_rel_pred),
-    "aLeadK": 0.0,
+    "aLeadK": float(lead_msg.a[0]),
     "aLeadTau": 0.3,
+    "aRel": float(lead_msg.a[0] - a_ego),
     "fcw": False,
     "modelProb": float(lead_msg.prob),
     "status": True,
@@ -168,7 +169,7 @@ def get_RadarState_from_vision(lead_msg: capnp._DynamicStructReader, v_ego: floa
   }
 
 
-def get_lead(v_ego: float, ready: bool, tracks: dict[int, Track], lead_msg: capnp._DynamicStructReader,
+def get_lead(v_ego: float, a_ego: float, ready: bool, tracks: dict[int, Track], lead_msg: capnp._DynamicStructReader,
              model_v_ego: float, CP: car.CarParams, low_speed_override: bool = True) -> dict[str, Any]:
   # Determine leads, this is where the essential logic happens
   if len(tracks) > 0 and ready and lead_msg.prob > .5:
@@ -180,7 +181,7 @@ def get_lead(v_ego: float, ready: bool, tracks: dict[int, Track], lead_msg: capn
   if track is not None:
     lead_dict = track.get_RadarState(CP, lead_msg.y[0], lead_msg.prob)
   elif (track is None) and ready and (lead_msg.prob > .5):
-    lead_dict = get_RadarState_from_vision(lead_msg, v_ego, model_v_ego)
+    lead_dict = get_RadarState_from_vision(lead_msg, v_ego, model_v_ego, a_ego)
 
   if low_speed_override:
     low_speed_tracks = [c for c in tracks.values() if c.potential_low_speed_lead(v_ego)]
@@ -204,6 +205,7 @@ class RadarD:
     self.v_ego = 0.0
     self.v_ego_hist = deque([0.0], maxlen=delay+1)
     self.last_v_ego_frame = -1
+    self.a_ego = 0.0
 
     self.radar_state: capnp._DynamicStructBuilder | None = None
     self.radar_state_valid = False
@@ -226,6 +228,7 @@ class RadarD:
       self.v_ego = sm['carState'].vEgo
       self.v_ego_hist.append(self.v_ego)
       self.last_v_ego_frame = sm.recv_frame['carState']
+      self.a_ego = sm['carState'].aEgo
 
     ar_pts = {}
     for pt in radar_points:
@@ -261,8 +264,8 @@ class RadarD:
       model_v_ego = self.v_ego
     leads_v3 = sm['modelV2'].leadsV3
     if len(leads_v3) > 1:
-      self.radar_state.leadOne = get_lead(self.v_ego, self.ready, self.tracks, leads_v3[0], model_v_ego, self.CP, low_speed_override=True)
-      self.radar_state.leadTwo = get_lead(self.v_ego, self.ready, self.tracks, leads_v3[1], model_v_ego, self.CP, low_speed_override=False)
+      self.radar_state.leadOne = get_lead(self.v_ego, self.a_ego, self.ready, self.tracks, leads_v3[0], model_v_ego, self.CP, low_speed_override=True)
+      self.radar_state.leadTwo = get_lead(self.v_ego, self.a_ego, self.ready, self.tracks, leads_v3[1], model_v_ego, self.CP, low_speed_override=False)
 
   def publish(self, pm: messaging.PubMaster, lag_ms: float):
     assert self.radar_state is not None
