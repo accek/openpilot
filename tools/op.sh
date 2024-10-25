@@ -222,6 +222,11 @@ function op_juggle() {
   op_run_command tools/plotjuggler/juggle.py $@
 }
 
+function op_rerun() {
+  op_before_cmd
+  op_run_command tools/rerun/run.py $@
+}
+
 function op_lint() {
   op_before_cmd
   op_run_command scripts/lint.sh $@
@@ -270,6 +275,7 @@ function op_default() {
   echo -e "  ${BOLD}build${NC}    Run the openpilot build system in the current working directory"
   echo -e "  ${BOLD}sim${NC}      Run openpilot in a simulator"
   echo -e "  ${BOLD}juggle${NC}   Run Plotjuggler"
+  echo -e "  ${BOLD}rerun${NC}    Run rerun"
   echo -e "  ${BOLD}replay${NC}   Run replay"
   echo -e "  ${BOLD}cabana${NC}   Run cabana"
   echo -e "  ${BOLD}lint${NC}     Run the linter"
@@ -317,6 +323,7 @@ function _op() {
     setup )     shift 1; op_setup "$@" ;;
     build )     shift 1; op_build "$@" ;;
     juggle )    shift 1; op_juggle "$@" ;;
+    rerun )     shift 1; op_rerun "$@" ;;
     cabana )    shift 1; op_cabana "$@" ;;
     lint )      shift 1; op_lint "$@" ;;
     test )      shift 1; op_test "$@" ;;
