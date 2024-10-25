@@ -189,9 +189,11 @@ class CarController(CarControllerBase):
       lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
       if self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2):
         self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
-                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel)
+                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
+                                                          CS.out.vEgo, CS.out.aEgo)
         self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
-                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel)
+                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
+                                                          CS.out.vEgo, CS.out.aEgo)
 
     if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
       self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)

@@ -1,4 +1,4 @@
-from openpilot.common.numpy_fast import clip
+from openpilot.common.numpy_fast import clip, interp
 
 MSG_STEERING = "HCA_01"
 MSG_EPS = "LH_EPS_03"
@@ -101,13 +101,23 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
   return acc_control_value(cruise_available, gas_pressed, acc_faulted, long_active)
 
 
-def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel):
+def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel, actual_speed, actual_accel):
   acc_enabled = acc_control in (3, 4)
 
   if acc_enabled:
     startstop = 2 if starting else 1
   else:
     startstop = 0
+
+  if not acc_enabled:
+    pos_jerk = 0.0
+  elif esp_hold:
+    pos_jerk = 4.0
+  elif stopping:
+    pos_jerk = 2.0
+  else:
+    pos_jerk = interp(actual_speed, [4.0, 6.0], [1.8, 0.6 if lead_accel is not None else 0.3])
+    pos_jerk = max(pos_jerk, -actual_accel + 0.3)  # TODO: it's not ideally replicating the original logic
 
   # For stock comfort bands, see https://colab.research.google.com/drive/1y80X3VBACwLfMLvUE57GV4Yv6N8JjEmG?usp=sharing
   values = {
@@ -118,14 +128,14 @@ def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, s
     "ACC_zul_Regelabw_unten": clip(accel + 0.2, 0.0, 0.2) if acc_enabled and not stopping else 0,  # TODO: even better adjustment of comfort-band
     "ACC_zul_Regelabw_oben": clip((accel + 1.5) * (0.125 / 1.5), 0, 0.125) if acc_enabled and not stopping else 0,  # TODO: even better adjustment of comfort-band
     "ACC_neg_Sollbeschl_Grad_02": 4.0 if acc_enabled else 0,  # TODO: dynamic adjustment of jerk limits
-    "ACC_pos_Sollbeschl_Grad_02": 4.0 if acc_enabled else 0,  # TODO: dynamic adjustment of jerk limits
+    "ACC_pos_Sollbeschl_Grad_02": pos_jerk,
     "ACC_Anfahren": starting,
     "ACC_Anhalten": stopping,
   }
   return values
 
 
-def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel):
+def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel, actual_speed, actual_accel):
   acc_enabled = acc_control in (3, 4)
 
   if starting:
