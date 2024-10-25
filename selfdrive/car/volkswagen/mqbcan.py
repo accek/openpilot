@@ -166,7 +166,7 @@ def create_acc_hud_control_1(values, acc_hud_status, set_speed, set_speed_reache
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
     "ACC_Wunschgeschw_erreicht": acc_hud_status == 3 and set_speed < 250 and set_speed_reached,
-    "ACC_Gesetzte_Zeitluecke": target_distance_bars + 1,
+    "ACC_Gesetzte_Zeitluecke": target_distance_bars,
     "ACC_Display_Prio": min(2 if acc_hud_status in (3, 4) else 3, values["ACC_Display_Prio"]),
     "ACC_Abstandsindex": lead_distance,
     "ACC_Tachokranz": acc_hud_status in (3, 4),

@@ -398,8 +398,8 @@ class CarController(CarControllerBase):
     v_ego = max(2.5, CS.vEgo)
     min_value = 64 if upscale else 1
     max_value = 1023 if upscale else 15
-    max_relative_time = 4.0
-    min_relative_time = 1.0
+    max_relative_time = 3.1667
+    min_relative_time = 0.8333
 
     distance = None
     if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
