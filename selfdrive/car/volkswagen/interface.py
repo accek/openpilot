@@ -92,8 +92,6 @@ class CarInterface(CarInterfaceBase):
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_VOLKSWAGEN_LONG_CONTROL
       if ret.transmissionType == TransmissionType.manual:
         ret.minEnableSpeed = 4.5
-      ret.longitudinalTuning.kiBP = [5., 35.]
-      ret.longitudinalTuning.kiV = [2.0, 1.5]
       ret.longitudinalActuatorDelay = 0.5 # s
 
     if Params().get_bool("VwCCOnly"):
