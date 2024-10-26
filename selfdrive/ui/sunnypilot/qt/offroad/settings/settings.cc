@@ -38,8 +38,8 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
     {
       "OpenpilotEnabledToggle",
-      tr("Enable sunnypilot"),
-      tr("Use the sunnypilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off."),
+      tr("Enable ACSPilot"),
+      tr("Use the ACSPilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off."),
       "../assets/offroad/icon_blank.png",
     },
     {
@@ -365,10 +365,10 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
   QList<PanelInfo> panels = {
     PanelInfo("   " + tr("Device"), device, "../assets/navigation/icon_home.svg"),
     PanelInfo("   " + tr("Network"), new NetworkingSP(this), "../assets/offroad/icon_network.png"),
-    PanelInfo("   " + tr("sunnylink"), new SunnylinkPanel(this), "../assets/offroad/icon_wifi_strength_full.svg"),
+    PanelInfo("   " + tr("Sunnylink"), new SunnylinkPanel(this), "../assets/offroad/icon_wifi_strength_full.svg"),
     PanelInfo("   " + tr("Toggles"), toggles, "../assets/offroad/icon_toggle.png"),
     PanelInfo("   " + tr("Software"), new SoftwarePanelSP(this), "../assets/offroad/icon_software.png"),
-    PanelInfo("   " + tr("sunnypilot"), new SunnypilotPanel(this), "../assets/offroad/icon_openpilot.png"),
+    PanelInfo("   " + tr("ACSPilot"), new SunnypilotPanel(this), "../assets/offroad/icon_openpilot.png"),
     PanelInfo("   " + tr("OSM"), new OsmPanel(this), "../assets/offroad/icon_map.png"),
     PanelInfo("   " + tr("Monitoring"), new MonitoringPanel(this), "../assets/offroad/icon_monitoring.png"),
     PanelInfo("   " + tr("Visuals"), new VisualsPanel(this), "../assets/offroad/icon_visuals.png"),
@@ -409,7 +409,7 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
     nav_btns->addButton(btn);
     buttons_layout->addWidget(btn, 0, Qt::AlignLeft | Qt::AlignBottom);
 
-    const int lr_margin = (name != ("   " + tr("Network")) || (name != ("   " + tr("sunnypilot")))) ? 50 : 0;  // Network and sunnypilot panel handles its own margins
+    const int lr_margin = (name != ("   " + tr("Network")) || (name != ("   " + tr("ACSPilot")))) ? 50 : 0;  // Network and sunnypilot panel handles its own margins
     panel->setContentsMargins(lr_margin, 25, lr_margin, 25);
 
     ScrollViewSP *panel_frame = new ScrollViewSP(panel, this);

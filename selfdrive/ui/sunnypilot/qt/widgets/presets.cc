@@ -40,10 +40,10 @@ static QWidget * radio_button(QString title, QButtonGroup *group) {
   group->addButton(btn);
   btn->setStyleSheet(R"(
     QPushButton {
-      height: 230;
-      padding-left: 100px;
-      padding-right: 100px;
-      text-align: left;
+      height: 300;
+      width: 300;
+      padding: 100px 20px;
+      text-align: center;
       font-size: 80px;
       font-weight: 400;
       border-radius: 10px;
@@ -55,13 +55,13 @@ static QWidget * radio_button(QString title, QButtonGroup *group) {
   )");
 
   // checkmark icon
-  QPixmap pix(":/img_circled_check.svg");
+  /*QPixmap pix(":/img_circled_check.svg");
   btn->setIcon(pix);
   btn->setIconSize(QSize(0, 0));
   btn->setLayoutDirection(Qt::RightToLeft);
   QObject::connect(btn, &QPushButton::toggled, [=](bool checked) {
     btn->setIconSize(checked ? QSize(104, 104) : QSize(0, 0));
-  });
+  });*/
   return btn;
 }
 
@@ -83,18 +83,22 @@ Presets::Presets(QWidget* parent) : QFrame(parent) {
   QButtonGroup *group = new QButtonGroup(this);
   group->setExclusive(true);
 
-  QWidget *preset_off = radio_button(tr("Off (Dashcam)"), group);
-  main_layout->addWidget(preset_off);
+  QHBoxLayout *buttons_layout = new QHBoxLayout(this);
 
-  main_layout->addSpacing(30);
+  QWidget *preset_off = radio_button(tr("Dashcam"), group);
+  buttons_layout->addWidget(preset_off);
 
-  QWidget *preset_1 = radio_button(tr("OpenPilot Lane Assist"), group);
-  main_layout->addWidget(preset_1);
+  buttons_layout->addSpacing(30);
 
-  main_layout->addSpacing(30);
+  QWidget *preset_1 = radio_button(tr("Openpilot\nSteering"), group);
+  buttons_layout->addWidget(preset_1);
 
-  QWidget *preset_2 = radio_button(tr("OpenPilot Lane Assist + ACC"), group);
-  main_layout->addWidget(preset_2);
+  buttons_layout->addSpacing(30);
+
+  QWidget *preset_2 = radio_button(tr("Openpilot\nFull"), group);
+  buttons_layout->addWidget(preset_2);
+
+  main_layout->addLayout(buttons_layout);
 
   connect(group, QOverload<QAbstractButton *>::of(&QButtonGroup::buttonClicked), [=](QAbstractButton *btn) {
     btn->setChecked(true);

@@ -4,6 +4,8 @@
 #include <QStackedLayout>
 #include <QWidget>
 
+#include "common/params.h"
+
 #ifdef SUNNYPILOT
 #include "selfdrive/ui/sunnypilot/ui.h"
 #else
@@ -23,5 +25,6 @@ public slots:
   void updateState(const UIState &s);
 
 protected:
+  Params params;
   QStackedLayout *stack;
 };

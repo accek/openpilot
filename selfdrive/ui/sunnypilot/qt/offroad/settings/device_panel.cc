@@ -90,18 +90,18 @@ DevicePanelSP::DevicePanelSP(SettingsWindow *parent) : DevicePanel(parent) {
   });
   AddWidgetAt(6, resetMapboxTokenBtn);
 
-  auto resetParamsBtn = new ButtonControlSP(tr("Reset sunnypilot Settings"), tr("RESET"), "");
+  auto resetParamsBtn = new ButtonControlSP(tr("Reset Settings"), tr("RESET"), "");
   connect(resetParamsBtn, &ButtonControlSP::clicked, [=]() {
-    if (ConfirmationDialog::confirm(tr("Are you sure you want to reset all sunnypilot settings?"), tr("Reset"), this)) {
+    if (ConfirmationDialog::confirm(tr("Are you sure you want to reset all settings?"), tr("Reset"), this)) {
       std::system("sudo rm -rf /data/params/d/*");
       Hardware::reboot();
     }
   });
   AddWidgetAt(6, resetParamsBtn);
-  
+
   QObject::connect(uiStateSP(), &UIStateSP::offroadTransition, [=](bool offroad) {
     for (auto btn : findChildren<ButtonControlSP *>()) {
-      if (btn != pair_device && btn != errorBtn) { 
+      if (btn != pair_device && btn != errorBtn) {
         btn->setEnabled(offroad);
       }
     }

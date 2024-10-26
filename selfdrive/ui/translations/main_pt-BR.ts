@@ -563,14 +563,6 @@ Please use caution when using this feature. Only use the blinker when traffic an
         <translation type="unfinished">Resetar</translation>
     </message>
     <message>
-        <source>Reset sunnypilot Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Are you sure you want to reset all sunnypilot settings?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Toggle Onroad/Offroad</source>
         <translation type="unfinished"></translation>
     </message>
@@ -608,6 +600,14 @@ Please use caution when using this feature. Only use the blinker when traffic an
     </message>
     <message>
         <source>Fleet Manager PIN:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Are you sure you want to reset all settings?</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -773,15 +773,15 @@ Pause Steering: ALC will be paused after the brake pedal is manually pressed.</s
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Pause Lateral Below Speed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable this toggle to pause lateral actuation when traveling below the desired speed selected below.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Enable this toggle to pause lateral actuation when traveling below the desired speed selected below and the blinker is active.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pause Lateral Below Speed when Steering</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable this toggle to pause lateral actuation when traveling below the desired speed selected below and the driver is steering.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -999,7 +999,7 @@ Pause Steering: ALC will be paused after the brake pedal is manually pressed.</s
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>sunnypilot is now in Forced Offroad mode. sunnypilot won&apos;t start until Forced Offroad mode is disabled. Go to &quot;Settings&quot; -&gt; &quot;Device&quot; -&gt; &quot;Unforce Offroad&quot; to exit Force Offroad mode.</source>
+        <source>openpilot is now in Forced Offroad mode. openpilot won&apos;t start until Forced Offroad mode is disabled. Go to &quot;Settings&quot; -&gt; &quot;Device&quot; -&gt; &quot;Unforce Offroad&quot; to exit Force Offroad mode.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1299,7 +1299,7 @@ Warning: You are on a metered connection!</source>
         <translation type="unfinished">mph</translation>
     </message>
     <message>
-        <source>Pause lateral actuation when traveling below the desired speed selected. Default is 10 MPH or 16 km/h.</source>
+        <source>Pause lateral actuation when traveling below the desired speed selected and driver steers. Default is 10 MPH or 16 km/h.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1329,15 +1329,17 @@ Warning: You are on a metered connection!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Off (Dashcam)</source>
+        <source>Dashcam</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>OpenPilot Lane Assist</source>
+        <source>Openpilot
+Steering</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>OpenPilot Lane Assist + ACC</source>
+        <source>Openpilot
+Full</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1439,10 +1441,6 @@ Warning: You are on a metered connection!</source>
         <translation>agora</translation>
     </message>
     <message>
-        <source>sunnypilot</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Update downloaded. Ready to reboot.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1460,6 +1458,10 @@ Warning: You are on a metered connection!</source>
     </message>
     <message>
         <source>Updating...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ACSPilot</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1698,20 +1700,12 @@ Reboot Required.</source>
         <translation type="unfinished">Rede</translation>
     </message>
     <message>
-        <source>sunnylink</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Toggles</source>
         <translation type="unfinished">Ajustes</translation>
     </message>
     <message>
         <source>Software</source>
         <translation type="unfinished">Software</translation>
-    </message>
-    <message>
-        <source>sunnypilot</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>OSM</source>
@@ -1735,6 +1729,14 @@ Reboot Required.</source>
     </message>
     <message>
         <source>Vehicle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sunnylink</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ACSPilot</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2939,24 +2941,16 @@ Reboot Required.</source>
         <translation>Habilite o monitoramento do motorista mesmo quando o openpilot não estiver acionado.</translation>
     </message>
     <message>
-        <source>Enable sunnypilot</source>
+        <source>Enable ACSPilot</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Use the sunnypilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off.</source>
+        <source>Use the ACSPilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>TogglesPanelSP</name>
-    <message>
-        <source>Enable sunnypilot</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use the sunnypilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off.</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>openpilot Longitudinal Control (Alpha)</source>
         <translation type="unfinished">Controle Longitudinal openpilot (Embrionário)</translation>
@@ -3152,6 +3146,14 @@ This feature must be used along with SLC, and/or V-TSC, and/or M-TSC.</source>
     </message>
     <message>
         <source>If enabled, the device will display a profile selection dialog and will not activate until a selection is made.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable ACSPilot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use the ACSPilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
