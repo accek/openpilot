@@ -180,7 +180,7 @@ class CarController(CarControllerBase):
       cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
       # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety
       acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
-      acc_override = (CC.cruiseControl.override or CS.out.gasPressed) and not CS.out.brakePressed and not cancel_pressed
+      acc_override = (CC.cruiseControl.override or (acc_active and CS.out.gasPressed)) and not CS.out.brakePressed and not cancel_pressed
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
                                                CS.out.accFaulted, acc_active)
       accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if acc_active and not acc_override else 0
