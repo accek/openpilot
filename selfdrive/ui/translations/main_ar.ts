@@ -3172,6 +3172,10 @@ This feature must be used along with SLC, and/or V-TSC, and/or M-TSC.</source>
         <source>Use the ACSPilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature. Changing this setting takes effect when the car is powered off.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Turtle</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>TorqueFriction</name>
