@@ -26,8 +26,9 @@ from openpilot.common.swaglog import cloudlog
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MIN = -1.2
-A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
-A_CRUISE_MAX_BP = [0., 10.0, 25., 40.]
+A_CRUISE_MAX_WITH_LEAD_FACTORS = [1.0, 1.0, 1.0, 0.625, 0.5]
+A_CRUISE_MAX_VALS = [2.0, 1.6, 1.2, 0.8, 0.6]
+A_CRUISE_MAX_BP = [0., 3.0, 10.0, 25., 40.]
 CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 
 # Lookup table for turns
@@ -40,6 +41,10 @@ EventName = car.CarEvent.EventName
 
 def get_max_accel(v_ego):
   return interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS)
+
+
+def get_max_accel_with_lead_factor(v_ego):
+  return interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_WITH_LEAD_FACTORS)
 
 
 def limit_accel_in_turns(v_ego, angle_steers, a_target, CP):
@@ -166,6 +171,13 @@ class LongitudinalPlanner:
         # blended, just give it max min (-3.5) and max from accel controller
         accel_limits = [ACCEL_MIN, ACCEL_MAX]
         accel_limits_turns = [ACCEL_MIN, ACCEL_MAX]
+
+    if self.mpc.mode == 'acc':
+      lead1_msg = sm['radarState'].leadOne
+      has_lead = lead1_msg.status and lead1_msg.modelProb > 0.9
+      blinker = sm['carState'].leftBlinker or sm['carState'].rightBlinker
+      if has_lead and not blinker:
+        accel_limits[1] *= get_max_accel_with_lead_factor(v_ego)
 
     if reset_state:
       self.v_desired_filter.x = v_ego
