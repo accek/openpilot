@@ -16,6 +16,7 @@ enum LongitudinalPersonalitySP {
   moderate @1;
   standard @2;
   relaxed @3;
+  turtle @4;
 }
 
 enum AccelerationPersonality {

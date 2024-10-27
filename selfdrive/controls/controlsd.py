@@ -60,7 +60,7 @@ ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
 ACTIVE_STATES = (State.enabled, State.softDisabling, State.overriding)
 ENABLED_STATES = (State.preEnabled, *ACTIVE_STATES)
 
-PERSONALITY_MAPPING = {0: 0, 1: 1, 2: 2, 3: 2}
+PERSONALITY_MAPPING = {0: 0, 1: 1, 2: 2, 3: 2, 4: 2}
 
 
 class Controls:
@@ -757,9 +757,9 @@ class Controls:
     if self.CP.openpilotLongitudinalControl:
       new_personality = self.personality
       if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
-        new_personality = (self.personality - 1) % 4
+        new_personality = (self.personality - 1) % 5
       elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseUp for be in CS.buttonEvents) \
-          and self.personality < 3:
+          and self.personality < 4:
         new_personality = self.personality + 1
       elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseDown for be in CS.buttonEvents) \
           and self.personality > 0:

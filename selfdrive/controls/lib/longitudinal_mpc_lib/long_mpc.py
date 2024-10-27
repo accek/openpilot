@@ -58,7 +58,9 @@ COMFORT_BRAKE = 2.0
 STOP_DISTANCE = 5.0
 
 def get_jerk_factor(personality=custom.LongitudinalPersonalitySP.standard):
-  if personality==custom.LongitudinalPersonalitySP.relaxed:
+  if personality==custom.LongitudinalPersonalitySP.turtle:
+    return 1.2
+  elif personality==custom.LongitudinalPersonalitySP.relaxed:
     return 1.0
   elif personality==custom.LongitudinalPersonalitySP.standard:
     return 1.0
@@ -71,7 +73,9 @@ def get_jerk_factor(personality=custom.LongitudinalPersonalitySP.standard):
 
 
 def get_T_FOLLOW(personality=custom.LongitudinalPersonalitySP.standard):
-  if personality==custom.LongitudinalPersonalitySP.relaxed:
+  if personality==custom.LongitudinalPersonalitySP.turtle:
+    return 3.0
+  elif personality==custom.LongitudinalPersonalitySP.relaxed:
     return 2.5
   elif personality==custom.LongitudinalPersonalitySP.standard:
     return 2.0
@@ -84,7 +88,10 @@ def get_T_FOLLOW(personality=custom.LongitudinalPersonalitySP.standard):
 
 
 def get_dynamic_personality(v_ego, personality=custom.LongitudinalPersonalitySP.standard):
-  if personality==custom.LongitudinalPersonalitySP.relaxed:
+  if personality==custom.LongitudinalPersonalitySP.turtle:
+    x_vel =  [0,    11,   14.5, 15,   20,   20.01,  25,    25.01,  36,  36.01]
+    y_dist = [2.5,  2.5,  2.5,  2.67, 2.93, 2.93,   2.97,  2.97,   3.0, 3.0]
+  elif personality==custom.LongitudinalPersonalitySP.relaxed:
     x_vel =  [0,    11,   14.5, 15,   20,   20.01,  25,    25.01,  36,  36.01]
     y_dist = [2.0,  2.0,  2.0,  2.13, 2.35, 2.35,   2.37,  2.37,   2.4, 2.4]
   elif personality==custom.LongitudinalPersonalitySP.standard:

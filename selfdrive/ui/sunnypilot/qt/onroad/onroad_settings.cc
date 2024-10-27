@@ -161,7 +161,7 @@ void OnroadSettings::changeGapAdjustCruise() {
   bool can_change = hasLongitudinalControl(cp);
   if (can_change) {
     scene.longitudinal_personality--;
-    scene.longitudinal_personality = scene.longitudinal_personality < 0 ? 3 : scene.longitudinal_personality;
+    scene.longitudinal_personality = scene.longitudinal_personality < 0 ? 4 : scene.longitudinal_personality;
     params.put("LongitudinalPersonality", std::to_string(scene.longitudinal_personality));
   }
   refresh();
@@ -366,6 +366,9 @@ void OptionWidget::updateGapAdjustCruise(QString param) {
   } else if (lp == 3) {
     title_text = "Relaxed";
     icon_color = "#6a0ac9";
+  } else if (lp == 4) {
+    title_text = "Turtle";
+    icon_color = "#929acd";
   }
 
   icon->setStyleSheet(QString("QLabel#icon { background-color: %1; border-radius: 34px; }").arg(icon_color));
