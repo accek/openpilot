@@ -140,7 +140,8 @@ class CarState(CarStateBase):
       # Speed limiter mode; ECM faults if we command ACC while not pcmCruise
       ret.cruiseState.nonAdaptive = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
-    ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
+    ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7) or \
+                     ext_cp.vl["ACC_06"]["ACC_Status_ACC"] in (6, 7)
 
     self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
     ret.cruiseState.standstill = self.CP.pcmCruise and self.esp_hold_confirmation
