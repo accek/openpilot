@@ -143,7 +143,7 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
                                              "your steering wheel distance button."),
                                           "",
                                           longi_button_texts,
-                                          380);
+                                          300);
   long_personality_setting->showDescription();
 
   // accel controller
