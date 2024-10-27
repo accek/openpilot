@@ -104,7 +104,7 @@ def acc_hud_status_value(cruise_available, gas_pressed, acc_faulted, long_active
 def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, starting, esp_hold, lead_accel, actual_speed, actual_accel):
   acc_enabled = acc_control in (3, 4)
 
-  if acc_enabled:
+  if acc_enabled and not esp_hold:
     startstop = 2 if starting else 1
   else:
     startstop = 0
