@@ -178,7 +178,8 @@ class CarController(CarControllerBase):
     accel = 0
     if self.CP.openpilotLongitudinalControl:
       cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
-      # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety
+      # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety,
+      # otherwise ACC will fault after it detects a predefined number of missing messages.
       acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
       acc_override = (CC.cruiseControl.override or (acc_active and CS.out.gasPressed)) and not CS.out.brakePressed and not cancel_pressed
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
