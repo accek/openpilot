@@ -152,7 +152,7 @@ protected:
   QTimer *timer;
   PrimeType prime_type = PrimeType::UNKNOWN;
 
-private:  
+private:
   bool started_prev = false;
 };
 #undef UIScene
@@ -183,7 +183,7 @@ protected:
   QFuture<void> brightness_future;
 
   virtual void updateBrightness(const UIState &s);
-  void updateWakefulness(const UIState &s);
+  virtual void updateWakefulness(const UIState &s);
   void setAwake(bool on);
   float clipped_brightness;
 

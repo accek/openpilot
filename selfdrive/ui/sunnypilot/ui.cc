@@ -338,6 +338,11 @@ void DeviceSP::updateBrightness(const UIStateSP &s) {
   }
 }
 
+void DeviceSP::updateWakefulness(const UIStateSP &s) {
+  Device::updateWakefulness(s);
+  setAwake(s.scene.started || interactive_timeout > 0);
+}
+
 UIStateSP *uiStateSP() {
   static UIStateSP ui_state;
   return &ui_state;

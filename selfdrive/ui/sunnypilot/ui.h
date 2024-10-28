@@ -94,7 +94,7 @@ public:
     for (const auto &role : sunnylinkRoles) {
       if(role.roleType != RoleType::Sponsor)
         continue;
-      
+
       if (auto sponsorRole = role.as<SponsorRoleModel>(); !sponsorRoleWithHighestTier.has_value() || sponsorRoleWithHighestTier->roleTier < sponsorRole.roleTier) {
         sponsorRoleWithHighestTier = sponsorRole;
       }
@@ -119,7 +119,7 @@ signals:
 
 private slots:
   void update() override;
-  
+
 
 private:
   std::vector<RoleModel> sunnylinkRoles = {};
@@ -143,6 +143,8 @@ public:
 protected:
   void updateBrightness(const UIStateSP &s);
   void updateBrightness(const UIState &s) override { updateBrightness(dynamic_cast<const UIStateSP &>(s)); }
+  void updateWakefulness(const UIStateSP &s);
+  void updateWakefulness(const UIState &s) override { updateBrightness(dynamic_cast<const UIStateSP &>(s)); }
 };
 
 DeviceSP *deviceSP();
