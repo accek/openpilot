@@ -471,15 +471,15 @@ class CarController(CarControllerBase):
         return 0
       else:
         return self.stock_acc_speed_set_button
-    elif stock_set_speed is None:
+    elif target_set_speed is None:
       return 0
-    elif target_set_speed is None or target_set_speed > stock_set_speed + self.CCP.ACC_CONTROL_STEP / 2:
+    elif stock_set_speed is None or target_set_speed > stock_set_speed + self.CCP.ACC_CONTROL_STEP / 2:
       self.stock_acc_speed_set_button = 1
       self.stock_acc_speed_set_button_pressed_frame = self.frame
       return 1
     elif target_set_speed <= stock_set_speed - self.CCP.ACC_CONTROL_STEP / 2:
       self.stock_acc_speed_set_button = 2
       self.stock_acc_speed_set_button_pressed_frame = self.frame
-      return 1
+      return 2
     else:
       return 0
