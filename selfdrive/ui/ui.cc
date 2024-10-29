@@ -365,6 +365,7 @@ void Device::updateWakefulness(const UIState &s) {
   } else if (interactive_timeout > 0 && --interactive_timeout == 0) {
     emit interactiveTimeout();
   }
+  RETURN_IF_SUNNYPILOT
 
   setAwake(s.scene.ignition || interactive_timeout > 0);
 }
