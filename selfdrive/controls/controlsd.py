@@ -185,6 +185,10 @@ class Controls:
     self.process_not_running = False
     self.experimental_mode_update = False
 
+    self.op_long_max_speed = float(self.params.get_float("OpLongMaxSpeed")) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
+    if self.op_long_max_speed == 0.0:
+      self.op_long_max_speed = float("inf")
+
     self.custom_model_metadata = CustomModelMetadata(params=self.params, init_only=True)
     self.model_use_lateral_planner = self.custom_model_metadata.valid and \
                                      self.custom_model_metadata.capabilities & ModelCapabilities.LateralPlannerSolution
@@ -648,6 +652,9 @@ class Controls:
     CC.longActive = self.enabled_long and \
                     not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and \
                     not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
+    CC.stockAccRequest = self.enabled_long and \
+                         not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and \
+                         self.v_cruise_helper.v_cruise_cluster_kph * CV.KPH_TO_MS > self.op_long_max_speed
 
     actuators = CC.actuators
     actuators.longControlState = self.LoC.long_control_state

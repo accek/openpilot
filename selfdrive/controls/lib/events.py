@@ -781,6 +781,14 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
       Priority.LOWEST, VisualAlert.none, AudibleAlert.none, .1),
   },
 
+  EventName.stockAccOverride: {
+    ET.OVERRIDE_LONGITUDINAL: Alert(
+      "",
+      "",
+      AlertStatus.normal, AlertSize.none,
+      Priority.LOWEST, VisualAlert.none, AudibleAlert.none, .1),
+  },
+
   EventName.steerOverride: {
     ET.OVERRIDE_LATERAL: Alert(
       "",

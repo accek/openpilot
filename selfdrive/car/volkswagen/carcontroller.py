@@ -65,6 +65,8 @@ class CarController(CarControllerBase):
     self.steady_speed = 0
     self.acc_type = -1
     self.send_count = 0
+    self.stock_acc_speed_set_button = None
+    self.stock_acc_speed_set_button_pressed_frame = None
 
   def update(self, CC, CS, now_nanos):
     self.sm.update(0)
@@ -238,8 +240,14 @@ class CarController(CarControllerBase):
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
                            cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume)
     elif self.CP.openpilotLongitudinalControl:
+      set_speed_ms = hud_control.setSpeed
+      if set_speed_ms > 250 * CV.KPH_TO_MS:
+        set_speed_ms = None
+      stock_acc_speed_set_button = self.calculate_stock_acc_speed_set_button(CS.stock_acc_set_speed, set_speed_ms)
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
-                           frame='auto')
+                           frame='auto', buttons=stock_acc_speed_set_button,
+                           resume=(not CS.stock_acc_overriding and CC.stockAccRequest),
+                           cancel=(CS.stock_acc_overriding and not CC.stockAccRequest))
 
     if not (CC.cruiseControl.cancel or CC.cruiseControl.resume) and CS.out.cruiseState.enabled:
       if not self.CP.pcmCruiseSpeed:
@@ -455,3 +463,23 @@ class CarController(CarControllerBase):
       if new_values is None:
         return False
     can_sends.append(self.packer_pt.make_can_msg(msg_name, to_bus, new_values))
+
+  def calculate_stock_acc_speed_set_button(self, stock_set_speed, target_set_speed):
+    if self.stock_acc_speed_set_button:
+      if self.frame > self.stock_acc_speed_set_button_pressed_frame + self.CCP.BTN_STEP:
+        self.stock_acc_speed_set_button = None
+        return 0
+      else:
+        return self.stock_acc_speed_set_button
+    elif stock_set_speed is None:
+      return 0
+    elif target_set_speed is None or target_set_speed > stock_set_speed + self.CCP.ACC_CONTROL_STEP / 2:
+      self.stock_acc_speed_set_button = 1
+      self.stock_acc_speed_set_button_pressed_frame = self.frame
+      return 1
+    elif target_set_speed <= stock_set_speed - self.CCP.ACC_CONTROL_STEP / 2:
+      self.stock_acc_speed_set_button = 2
+      self.stock_acc_speed_set_button_pressed_frame = self.frame
+      return 1
+    else:
+      return 0

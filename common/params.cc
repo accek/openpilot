@@ -291,6 +291,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"OnroadScreenOffBrightness", PERSISTENT | BACKUP},
     {"OnroadScreenOffEvent", PERSISTENT | BACKUP},
     {"OnroadSettings", PERSISTENT | BACKUP},
+    {"OpLongMaxSpeed", PERSISTENT | BACKUP},
     {"OsmLocal", PERSISTENT},
     {"OsmLocationName", PERSISTENT},
     {"OsmLocationTitle", PERSISTENT},

@@ -138,6 +138,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     speedLimitConfirmed @140;
     torqueNNLoad @141;
     hyundaiRadarTracksAvailable @142;
+    stockAccOverride @143;
 
     radarCanErrorDEPRECATED @15;
     communityFeatureDisallowedDEPRECATED @62;
@@ -376,6 +377,7 @@ struct CarControl {
   latActive @11: Bool;
   longActive @12: Bool;
   vCruise @17 :Float32;  # actual set speed
+  stockAccRequest @18 :Bool;
 
   # Actuator commands as computed by controlsd
   actuators @6 :Actuators;
@@ -501,6 +503,7 @@ struct CarParams {
   pcmCruiseSpeed @74 :Bool;  # is openpilot's state tied to the PCM's cruise speed?
   customStockLongAvailable @75 :Bool;
   spFlags @76 :UInt32;       # flags for car specific quirks in sunnypilot
+  stockAccOverrideAvailable @77 :Bool;
 
   minEnableSpeed @7 :Float32;
   minSteerSpeed @8 :Float32;

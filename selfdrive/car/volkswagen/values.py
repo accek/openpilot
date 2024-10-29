@@ -42,6 +42,8 @@ class CarControllerParams:
 
   STOP_ACCEL = -3.0                        # 3.0 m/s deceleration for stopping, as stock
 
+  STOCK_ACC_SET_SPEED_STEP = 10.0 * CV.KPH_TO_MS  # 10 km/h speed step for stock ACC set speed buttons
+
   def __init__(self, CP):
     can_define = CANDefine(DBC[CP.carFingerprint]["pt"])
 

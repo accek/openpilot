@@ -1102,6 +1102,25 @@ Pause Steering: ALC will be paused after the brake pedal is manually pressed.</s
     </message>
 </context>
 <context>
+    <name>OpLongMaxSpeed</name>
+    <message>
+        <source>Use stock ACC when set speed exceeds the given speed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>km/h</source>
+        <translation type="unfinished">كم/س</translation>
+    </message>
+    <message>
+        <source>mph</source>
+        <translation type="unfinished">ميل/س</translation>
+    </message>
+</context>
+<context>
     <name>OsmPanel</name>
     <message>
         <source>Mapd Version</source>

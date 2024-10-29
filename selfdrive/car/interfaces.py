@@ -711,6 +711,8 @@ class CarInterfaceBase(ABC):
         events.add(EventName.buttonEnable)
     if cs_out.disengageByBrake and not cs_out.standstill and enable_pressed_long:
       events.add(EventName.cruiseEngageBlocked)
+    if self.CP.openpilotLongitudinalControl and self.stock_acc_overriding:
+      events.add(EventName.stockAccOverride)
 
     self.cruise_cancelled_btn = False if cs_out.cruiseState.enabled else True
 
@@ -763,6 +765,7 @@ class CarStateBase(ABC):
     self.mads_enabled = False
     self.prev_mads_enabled = False
     self.control_initialized = False
+    self.stock_acc_overriding = False
 
     self.button_events: list[capnp.lib.capnp._DynamicStructBuilder] = []
     self.params_list: SimpleNamespace = ParamManager().get_params()

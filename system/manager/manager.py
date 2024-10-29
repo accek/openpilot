@@ -86,6 +86,7 @@ def manager_init() -> None:
     ("OnroadScreenOffBrightness", "50"),
     ("OnroadScreenOffEvent", "1"),
     ("OnroadSettings", "1"),
+    ("OpLongMaxSpeed", "0"),
     ("PathOffset", "0"),
     ("PauseLateralSpeed", "0"),
     ("PauseLateralSpeedWithBlinker", "0"),

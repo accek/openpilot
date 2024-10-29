@@ -31,6 +31,21 @@ Last updated: July 29, 2024
 
 #include "selfdrive/ui/qt/offroad/settings.h"
 
+class OpLongMaxSpeed : public OptionControlSP {
+  Q_OBJECT
+
+public:
+  OpLongMaxSpeed();
+
+  void refresh();
+
+signals:
+  void ToggleUpdated();
+
+private:
+  Params params;
+};
+
 class TogglesPanelSP : public TogglesPanel {
   Q_OBJECT
 
@@ -44,6 +59,7 @@ private slots:
 private:
   ButtonParamControlSP *long_personality_setting;
   ButtonParamControlSP *accel_personality_setting;
+  OpLongMaxSpeed *op_long_max_speed;
 
   ParamWatcher *param_watcher;
   void updateToggles() override;

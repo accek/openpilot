@@ -18,6 +18,7 @@ class CarState(CarStateBase):
     self.esp_hold_confirmation = False
     self.upscale_lead_car_signal = False
     self.stock_values = {}
+    self.stock_acc_set_speed = None
 
   def create_button_events(self, pt_cp, buttons):
     button_events = []
@@ -161,6 +162,8 @@ class CarState(CarStateBase):
       self.update_stock_values("ACC_07", ext_cp)
       self.update_stock_values("ACC_13", ext_cp)
       self.update_stock_values("TSK_06", pt_cp)
+      self.stock_acc_overriding = ext_cp.vl["ACC_06"]["ACC_Status_ACC"] in (3, 4, 5)
+      self.stock_acc_set_speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
 
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough
     ret.leftBlinker = ret.leftBlinkerOn = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])

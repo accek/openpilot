@@ -33,6 +33,28 @@ Last updated: July 29, 2024
 #include "selfdrive/ui/sunnypilot/qt/network/networking.h"
 #include "selfdrive/ui/sunnypilot/sunnypilot_main.h"
 
+OpLongMaxSpeed::OpLongMaxSpeed() : OptionControlSP(
+  "OpLongMaxSpeed",
+  "",
+  tr("Use stock ACC when set speed exceeds the given speed."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void OpLongMaxSpeed::refresh() {
+  QString option = QString::fromStdString(params.get("OpLongMaxSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Never"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
+}
+
 TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
   // param, title, desc, icon
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
@@ -135,6 +157,8 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
     },
   };
 
+  op_long_max_speed = new OpLongMaxSpeed();
+  op_long_max_speed->showDescription();
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Moderate"), tr("Standard"), tr("Relaxed"), tr("Turtle")};
   long_personality_setting = new ButtonParamControlSP("LongitudinalPersonality", tr("Driving Personality"),
@@ -168,8 +192,11 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
     addItem(toggle);
     toggles[param.toStdString()] = toggle;
 
-    // insert longitudinal personality after NDOG toggle
-    if (param == "DisengageOnAccelerator") {
+    if (param == "ExperimentalLongitudinalEnabled") {
+      // insert op long limit after experimental long
+      addItem(op_long_max_speed);
+    } else if (param == "DisengageOnAccelerator") {
+      // insert longitudinal personality after NDOG toggle
       addItem(long_personality_setting);
       addItem(accel_personality_setting);
     }
@@ -258,6 +285,8 @@ void TogglesPanelSP::updateToggles() {
       params.remove("CustomStockLong");
     }
     custom_stock_long_toggle->setVisible(CP.getCustomStockLongAvailable());
+
+    op_long_max_speed->setVisible(CP.getStockAccOverrideAvailable());
 
     if (hasLongitudinalControl(CP)) {
       // normal description and toggle

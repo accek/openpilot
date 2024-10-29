@@ -89,6 +89,7 @@ class CarInterface(CarInterfaceBase):
     if experimental_long:
       # Proof-of-concept, prep for E2E only. No radar points available. Panda ALLOW_DEBUG firmware required.
       ret.openpilotLongitudinalControl = True
+      ret.stockAccOverrideAvailable = True
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_VOLKSWAGEN_LONG_CONTROL
       if ret.transmissionType == TransmissionType.manual:
         ret.minEnableSpeed = 4.5
