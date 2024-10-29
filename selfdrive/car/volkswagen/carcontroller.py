@@ -243,7 +243,7 @@ class CarController(CarControllerBase):
       set_speed_ms = hud_control.setSpeed
       if set_speed_ms > 250 * CV.KPH_TO_MS:
         set_speed_ms = None
-      stock_acc_speed_set_button = self.calculate_stock_acc_speed_set_button(CS.stock_acc_set_speed, set_speed_ms)
+      stock_acc_speed_set_button = self.calculate_stock_acc_speed_set_button(CS, set_speed_ms)
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
                            frame='auto', buttons=stock_acc_speed_set_button,
                            resume=(not CS.stock_acc_overriding and CC.stockAccRequest),
@@ -464,7 +464,10 @@ class CarController(CarControllerBase):
         return False
     can_sends.append(self.packer_pt.make_can_msg(msg_name, to_bus, new_values))
 
-  def calculate_stock_acc_speed_set_button(self, stock_set_speed, target_set_speed):
+  def calculate_stock_acc_speed_set_button(self, CS, target_set_speed):
+    if not CS.out.cruiseState.available:
+      return 0
+    stock_set_speed = CS.stock_acc_set_speed
     if self.stock_acc_speed_set_button:
       if self.frame > self.stock_acc_speed_set_button_pressed_frame + self.CCP.BTN_STEP:
         self.stock_acc_speed_set_button = None
