@@ -92,7 +92,7 @@ class VCruiseHelper:
   def v_cruise_initialized(self):
     return self.v_cruise_kph != V_CRUISE_UNSET
 
-  def update_v_cruise(self, CS, enabled, is_metric, reverse_acc, long_plan_sp):
+  def update_v_cruise(self, CS, enabled, is_metric, reverse_acc, long_plan_sp, experimental_mode=False, dynamic_experimental_control=False):
     self.v_cruise_kph_last = self.v_cruise_kph
     self.slc_state = long_plan_sp.speedLimitControlState
 
@@ -102,7 +102,7 @@ class VCruiseHelper:
     if CS.cruiseState.available:
       if not self.CP.pcmCruise or not self.CP.pcmCruiseSpeed:
         # if stock cruise is completely disabled, then we can use our own set speed logic
-        self._update_v_cruise_non_pcm(CS, enabled, is_metric, reverse_acc)
+        self._update_v_cruise_non_pcm(CS, enabled, is_metric, reverse_acc, experimental_mode, dynamic_experimental_control)
         self._update_v_cruise_slc(long_plan_sp)
         self.v_cruise_cluster_kph = self.v_cruise_kph
       else:
@@ -113,7 +113,7 @@ class VCruiseHelper:
       self.v_cruise_kph = V_CRUISE_UNSET
       self.v_cruise_cluster_kph = V_CRUISE_UNSET
 
-  def _update_v_cruise_non_pcm(self, CS, enabled, is_metric, reverse_acc):
+  def _update_v_cruise_non_pcm(self, CS, enabled, is_metric, reverse_acc, experimental_mode, dynamic_experimental_control):
     # handle button presses. TODO: this should be in state_control, but a decelCruise press
     # would have the effect of both enabling and changing speed is checked after the state transition
 
@@ -156,6 +156,11 @@ class VCruiseHelper:
 
     # Don't adjust speed if we've enabled since the button was depressed (some ports enable on rising edge)
     if enabled and not self.button_change_states[button_type]["enabled"]:
+      return
+
+    # If user is setting speed before activating ACC for the first time, we just set the initial value.
+    if not self.v_cruise_initialized:
+      self.initialize_v_cruise(CS, experimental_mode, is_metric, dynamic_experimental_control)
       return
 
     pressed_value = (1 if long_press else v_cruise_delta_mltplr) if reverse_acc else (v_cruise_delta_mltplr if long_press else 1)
