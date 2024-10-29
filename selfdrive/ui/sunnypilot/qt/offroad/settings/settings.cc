@@ -159,6 +159,7 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindow *parent) : TogglesPanel(parent) {
 
   op_long_max_speed = new OpLongMaxSpeed();
   op_long_max_speed->showDescription();
+  connect(op_long_max_speed, &OptionControlSP::updateLabels, op_long_max_speed, &OpLongMaxSpeed::refresh);
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Moderate"), tr("Standard"), tr("Relaxed"), tr("Turtle")};
   long_personality_setting = new ButtonParamControlSP("LongitudinalPersonality", tr("Driving Personality"),
