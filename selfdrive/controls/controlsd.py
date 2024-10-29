@@ -185,7 +185,7 @@ class Controls:
     self.process_not_running = False
     self.experimental_mode_update = False
 
-    self.op_long_max_speed = float(self.params.get_float("OpLongMaxSpeed")) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
+    self.op_long_max_speed = float(self.params.get("OpLongMaxSpeed")) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
     if self.op_long_max_speed == 0.0:
       self.op_long_max_speed = float("inf")
 

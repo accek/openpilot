@@ -711,7 +711,7 @@ class CarInterfaceBase(ABC):
         events.add(EventName.buttonEnable)
     if cs_out.disengageByBrake and not cs_out.standstill and enable_pressed_long:
       events.add(EventName.cruiseEngageBlocked)
-    if self.CP.openpilotLongitudinalControl and self.stock_acc_overriding:
+    if self.CP.openpilotLongitudinalControl and self.CS.stock_acc_overriding:
       events.add(EventName.stockAccOverride)
 
     self.cruise_cancelled_btn = False if cs_out.cruiseState.enabled else True
