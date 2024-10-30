@@ -44,6 +44,10 @@ class CarControllerParams:
 
   STOCK_ACC_SET_SPEED_STEP = 10.0 * CV.KPH_TO_MS  # 10 km/h speed step for stock ACC set speed buttons
 
+  # TODO: adjust to match actual limits which depend on ACC version
+  STOCK_ACC_MIN_SET_SPEED = 30.0 * CV.KPH_TO_MS
+  STOCK_ACC_MAX_SET_SPEED = 250.0 * CV.KPH_TO_MS
+
   def __init__(self, CP):
     can_define = CANDefine(DBC[CP.carFingerprint]["pt"])
 

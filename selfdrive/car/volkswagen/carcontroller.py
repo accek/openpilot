@@ -1,5 +1,6 @@
 from cereal import car
 import cereal.messaging as messaging
+import math
 from opendbc.can.packer import CANPacker
 from openpilot.common.numpy_fast import clip
 from openpilot.common.conversions import Conversions as CV
@@ -38,7 +39,7 @@ class CarController(CarControllerBase):
 
     self.param_s = Params()
     self.last_speed_limit_sign_tap_prev = False
-    self.speed_limit = 0.
+    self.speed_limit = 0.0
     self.speed_limit_offset = 0
     self.timer = 0
     self.final_speed_kph = 0
@@ -468,19 +469,34 @@ class CarController(CarControllerBase):
     if not CS.out.cruiseState.available:
       return 0
     stock_set_speed = CS.stock_acc_set_speed
+    step_up_speed = min(
+      math.ceil((stock_set_speed + 0.01) / self.CPP.STOCK_ACC_SET_SPEED_STEP) * self.CPP.STOCK_ACC_SET_SPEED_STEP
+        if stock_set_speed is not None else self.CPP.STOCK_ACC_SPEED_MIN,
+      self.CPP.STOCK_ACC_SPEED_MAX,
+    )
+    step_down_speed = max(
+      math.floor((stock_set_speed - 0.01) / self.CPP.STOCK_ACC_SET_SPEED_STEP) * self.CPP.STOCK_ACC_SET_SPEED_STEP
+        if stock_set_speed is not None else self.CPP.STOCK_ACC_SPEED_MIN,
+      self.CPP.STOCK_ACC_SPEED_MIN,
+    )
     if self.stock_acc_speed_set_button:
       if self.frame > self.stock_acc_speed_set_button_pressed_frame + self.CCP.BTN_STEP:
         self.stock_acc_speed_set_button = None
         return 0
       else:
         return self.stock_acc_speed_set_button
+    elif any(be.type == ButtonType.setCruise for be in CS.out.buttonEvents):
+      # Forward SET directly, so that nonexact speeds are not rounded to the nearest step
+      self.stock_acc_speed_set_button = 3
+      self.stock_acc_speed_set_button_pressed_frame = self.frame
+      return 3
     elif target_set_speed is None:
       return 0
-    elif stock_set_speed is None or target_set_speed > stock_set_speed + self.CCP.ACC_CONTROL_STEP / 2:
+    elif stock_set_speed is None or abs(step_up_speed - target_set_speed) < abs(stock_set_speed - target_set_speed):
       self.stock_acc_speed_set_button = 1
       self.stock_acc_speed_set_button_pressed_frame = self.frame
       return 1
-    elif target_set_speed <= stock_set_speed - self.CCP.ACC_CONTROL_STEP / 2:
+    elif abs(step_down_speed - target_set_speed) < abs(stock_set_speed - target_set_speed):
       self.stock_acc_speed_set_button = 2
       self.stock_acc_speed_set_button_pressed_frame = self.frame
       return 2
