@@ -470,12 +470,12 @@ class CarController(CarControllerBase):
       return 0
     stock_set_speed = CS.stock_acc_set_speed
     step_up_speed = min(
-      math.ceil((stock_set_speed + 0.01) / self.CCP.STOCK_ACC_SET_SPEED_STEP) * self.CCP.STOCK_ACC_SET_SPEED_STEP
+      math.ceil((stock_set_speed + 0.1) / self.CCP.STOCK_ACC_SET_SPEED_STEP) * self.CCP.STOCK_ACC_SET_SPEED_STEP
         if stock_set_speed is not None else self.CCP.STOCK_ACC_MIN_SET_SPEED,
       self.CCP.STOCK_ACC_MAX_SET_SPEED,
     )
     step_down_speed = max(
-      math.floor((stock_set_speed - 0.01) / self.CCP.STOCK_ACC_SET_SPEED_STEP) * self.CCP.STOCK_ACC_SET_SPEED_STEP
+      math.floor((stock_set_speed - 0.1) / self.CCP.STOCK_ACC_SET_SPEED_STEP) * self.CCP.STOCK_ACC_SET_SPEED_STEP
         if stock_set_speed is not None else self.CCP.STOCK_ACC_MIN_SET_SPEED,
       self.CCP.STOCK_ACC_MIN_SET_SPEED,
     )
