@@ -144,7 +144,7 @@ protected:
   void updateBrightness(const UIStateSP &s);
   void updateBrightness(const UIState &s) override { updateBrightness(dynamic_cast<const UIStateSP &>(s)); }
   void updateWakefulness(const UIStateSP &s);
-  void updateWakefulness(const UIState &s) override { updateBrightness(dynamic_cast<const UIStateSP &>(s)); }
+  void updateWakefulness(const UIState &s) override { updateWakefulness(dynamic_cast<const UIStateSP &>(s)); }
 };
 
 DeviceSP *deviceSP();
