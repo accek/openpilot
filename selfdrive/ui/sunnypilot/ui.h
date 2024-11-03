@@ -57,7 +57,7 @@ const QColor sp_bg_colors [] = {
   [STATUS_DISENGAGED] = bg_colors[STATUS_DISENGAGED],
   [STATUS_OVERRIDE] = bg_colors[STATUS_OVERRIDE],
   [STATUS_ENGAGED] = QColor(0x00, 0xc8, 0x00, 0xf1),
-  [STATUS_MADS] = QColor(0x00, 0xc8, 0xc8, 0xf1),
+  [STATUS_MADS] = QColor(0x88, 0xdd, 0x88, 0xf1),
 };
 #define bg_colors sp_bg_colors // Override the bg_colors array with the sp_bg_colors array
 
