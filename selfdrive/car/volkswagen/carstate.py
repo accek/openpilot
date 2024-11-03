@@ -141,8 +141,10 @@ class CarState(CarStateBase):
       # Speed limiter mode; ECM faults if we command ACC while not pcmCruise
       ret.cruiseState.nonAdaptive = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
-    ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7) or \
-                     ext_cp.vl["ACC_06"]["ACC_Status_ACC"] in (6, 7)
+    ret.accFaultedTemporary = pt_cp.vl["TSK_06"]["TSK_Status"] == 6 or \
+                              ext_cp.vl["ACC_06"]["ACC_Status_ACC"] == 6
+    ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] == 7 or \
+                     ext_cp.vl["ACC_06"]["ACC_Status_ACC"] == 7
 
     self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
     ret.cruiseState.standstill = self.CP.pcmCruise and self.esp_hold_confirmation
@@ -162,7 +164,7 @@ class CarState(CarStateBase):
       self.update_stock_values("ACC_07", ext_cp)
       self.update_stock_values("ACC_13", ext_cp)
       self.update_stock_values("TSK_06", pt_cp)
-      self.stock_acc_overriding = ext_cp.vl["ACC_06"]["ACC_Status_ACC"] in (3, 4, 5)
+      self.stock_acc_overriding = ext_cp.vl["ACC_06"]["ACC_Status_ACC"] in (3, 4, 5, 6)
       self.stock_acc_set_speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
 
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough

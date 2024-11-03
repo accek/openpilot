@@ -62,6 +62,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     driverUnresponsive @45;
     belowSteerSpeed @46;
     lowBattery @48;
+    accFaultedTemporary @144;
     accFaulted @51;
     sensorDataInvalid @52;
     commIssue @53;
@@ -215,6 +216,7 @@ struct CarState {
   stockAeb @30 :Bool;
   stockFcw @31 :Bool;
   espDisabled @32 :Bool;
+  accFaultedTemporary @65 :Bool;
   accFaulted @42 :Bool;
   carFaultedNonCritical @47 :Bool;  # some ECU is faulted, but car remains controllable
   espActive @51 :Bool;

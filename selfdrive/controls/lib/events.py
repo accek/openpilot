@@ -991,6 +991,11 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.NO_ENTRY: high_cpu_usage_alert,
   },
 
+  EventName.accFaultedTemporary: {
+    ET.SOFT_DISABLE: soft_disable_alert("Cruise Fault"),
+    ET.NO_ENTRY: NoEntryAlert("Cruise Fault"),
+  },
+
   EventName.accFaulted: {
     ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Cruise Fault: Restart the Car"),
     ET.PERMANENT: NormalPermanentAlert("Cruise Fault: Restart the car to engage"),
