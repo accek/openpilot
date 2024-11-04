@@ -10,7 +10,7 @@ class LatControl(ABC):
   def __init__(self, CP, CI):
     self.sat_count_rate = 1.0 * DT_CTRL
     self.sat_limit = CP.steerLimitTimer
-    self.sat_count = 0.
+    self.sat_count = [0., 0.]
     self.sat_check_min_speed = 10.
 
     # we define the steer torque scale as [-1.0...1.0]
@@ -23,10 +23,16 @@ class LatControl(ABC):
   def reset(self):
     self.sat_count = 0.
 
-  def _check_saturation(self, saturated, CS, steer_limited):
-    if saturated and CS.vEgo > self.sat_check_min_speed and not steer_limited and not CS.steeringPressed:
-      self.sat_count += self.sat_count_rate
+  def _check_saturating(self, saturating, CS, steer_limited):
+    return self.__check_saturation(0, saturating, CS, steer_limited)
+
+  def _check_saturated(self, saturated, CS, steer_limited):
+    return self.__check_saturation(1, saturated, CS, steer_limited)
+
+  def __check_saturation(self, key, saturation, CS, steer_limited):
+    if saturation and CS.vEgo > self.sat_check_min_speed and not steer_limited and not CS.steeringPressed:
+      self.sat_count[key] += self.sat_count_rate
     else:
-      self.sat_count -= self.sat_count_rate
-    self.sat_count = clip(self.sat_count, 0.0, self.sat_limit)
-    return self.sat_count > (self.sat_limit - 1e-3)
+      self.sat_count[key] -= self.sat_count_rate
+    self.sat_count[key] = clip(self.sat_count[key], 0.0, self.sat_limit)
+    return self.sat_count[key] > (self.sat_limit - 1e-3)

@@ -43,6 +43,7 @@ class LatControlPID(LatControl):
       pid_log.i = self.pid.i
       pid_log.f = self.pid.f
       pid_log.output = output_steer
-      pid_log.saturated = self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited)
+      pid_log.saturating = self._check_saturating(self.steer_max * 0.8 < abs(output_steer), CS, steer_limited)
+      pid_log.saturated = self._check_saturated(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited)
 
     return output_steer, angle_steers_des, pid_log

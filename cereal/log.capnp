@@ -809,6 +809,7 @@ struct ControlsState @0x97ff69c53601abf1 {
     active @0 :Bool;
     steeringAngleDeg @1 :Float32;
     output @2 :Float32;
+    saturating @5 :Bool;
     saturated @3 :Bool;
     steeringAngleDesiredDeg @4 :Float32;
   }
