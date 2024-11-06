@@ -21,7 +21,7 @@ class LatControl(ABC):
     pass
 
   def reset(self):
-    self.sat_count = 0.
+    self.sat_count = [0., 0.]
 
   def _check_saturating(self, saturating, CS, steer_limited):
     return self.__check_saturation(0, saturating, CS, steer_limited)
