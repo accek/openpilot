@@ -763,6 +763,7 @@ struct ControlsState @0x97ff69c53601abf1 {
     delayedOutput @7 :Float32;
     delta @8 :Float32;
     output @9 :Float32;
+    saturating @13 :Bool;
     saturated @10 :Bool;
     steeringAngleDesiredDeg @11 :Float32;
     steeringRateDesiredDeg @12 :Float32;
@@ -777,6 +778,7 @@ struct ControlsState @0x97ff69c53601abf1 {
     i @5 :Float32;
     f @6 :Float32;
     output @7 :Float32;
+    saturating @10 :Bool;
     saturated @8 :Bool;
     steeringAngleDesiredDeg @9 :Float32;
    }
@@ -790,6 +792,7 @@ struct ControlsState @0x97ff69c53601abf1 {
     d @4 :Float32;
     f @5 :Float32;
     output @6 :Float32;
+    saturating @11 :Bool;
     saturated @7 :Bool;
     actualLateralAccel @9 :Float32;
     desiredLateralAccel @10 :Float32;
@@ -801,6 +804,7 @@ struct ControlsState @0x97ff69c53601abf1 {
     i @2 :Float32;
     output @3 :Float32;
     lqrOutput @4 :Float32;
+    saturating @7 :Bool;
     saturated @5 :Bool;
     steeringAngleDesiredDeg @6 :Float32;
   }
@@ -823,13 +827,15 @@ struct ControlsState @0x97ff69c53601abf1 {
     i @5 :Float32;
     f @6 :Float32;
     output @7 :Float32;
+    saturating @9 :Bool;
     saturated @8 :Bool;
   }
 
   struct LateralDebugState {
     active @0 :Bool;
     steeringAngleDeg @1 :Float32;
-    output @2 :Float32;
+    output @2 :Float32!
+    saturating @4 :Bool;
     saturated @3 :Bool;
   }
 
