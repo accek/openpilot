@@ -181,32 +181,25 @@ class CarController(CarControllerBase):
 
     accel = 0
     if self.CP.openpilotLongitudinalControl:
-      if CC.stockAccArmed:
-        self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends)
-        self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends)
-        self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends)
-      else:
-        cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
-        # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety,
-        # otherwise ACC will fault after it detects a predefined number of missing messages.
-        acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
-        acc_override = (CC.cruiseControl.override or (acc_active and CS.out.gasPressed)) and not CS.out.brakePressed and not cancel_pressed
-        acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
-                                                CS.out.accFaulted, acc_active)
-        accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if acc_active and not acc_override else 0
-        stopping = actuators.longControlState == LongCtrlState.stopping
-        near_stop = stopping and CS.out.vEgo < self.CP.vEgoStopping
-        starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-        lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
-        if self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2):
-          self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
-                                                            acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
-                                                            CS.out.vEgo, CS.out.aEgo)
-          self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
-                                                            acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
-                                                            CS.out.vEgo, CS.out.aEgo)
-        if self.can_forward_message(CS, self.CCS.MSG_TSK):
-          self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
+      cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
+      # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety,
+      # otherwise ACC will fault after it detects a predefined number of missing messages.
+      acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
+      acc_override = (CC.cruiseControl.override or (acc_active and CS.out.gasPressed)) and not CS.out.brakePressed and not cancel_pressed
+      acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
+                                              CS.out.accFaulted, acc_active)
+      accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if acc_active and not acc_override else 0
+      stopping = actuators.longControlState == LongCtrlState.stopping
+      near_stop = stopping and CS.out.vEgo < self.CP.vEgoStopping
+      starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
+      lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
+      self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
+                                                        acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
+                                                        CS.out.vEgo, CS.out.aEgo)
+      self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
+                                                        acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
+                                                        CS.out.vEgo, CS.out.aEgo)
+      self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
 
     # **** HUD Controls ***************************************************** #
 
@@ -224,7 +217,7 @@ class CarController(CarControllerBase):
                            hud_alert, hud_control)
 
     if self.CP.openpilotLongitudinalControl:
-      if CC.stockAccArmed:
+      if CC.stockAccArmed or CS.stock_acc_overriding:
         self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends)
         self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends)
         self.forward_message(CS, self.CCS.MSG_ACC_HUD_3, CANBUS.pt, can_sends)
@@ -253,7 +246,9 @@ class CarController(CarControllerBase):
       set_speed_ms = hud_control.setSpeed
       if set_speed_ms > 250 * CV.KPH_TO_MS:
         set_speed_ms = None
-      stock_acc_button = self.calculate_stock_acc_button(CS, set_speed_ms, CC.stockAccActive)
+      can_switch_acc = not CS.out.brakePressed and not cancel_pressed and not CS.out.gasPressed
+      stock_acc_requested = CC.stockAccActive and can_switch_acc
+      stock_acc_button = self.calculate_stock_acc_button(CS, set_speed_ms, stock_acc_requested)
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
                            frame='auto', buttons=stock_acc_button,
                            cancel=(CS.stock_acc_overriding and not CC.stockAccActive))
