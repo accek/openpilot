@@ -855,7 +855,6 @@ class Controls:
       hudControl.visualAlert = current_alert.visual_alert
       hudControl.audibleAlert = current_alert.audible_alert
 
-    standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
     if not (self.active or self.mads_ndlob) or \
         CS.steerFaultTemporary or \
         CS.steerFaultPermanent or \
@@ -863,10 +862,10 @@ class Controls:
         self.sm['liveCalibration'].calStatus != log.LiveCalibrationData.Status.calibrated or \
         self.process_not_running:
       hudControl.lateralStatus = LateralStatus.unavailable
-    elif CS.latActive or (standstill and not self.joystick_mode):
-      hudControl.lateralStatus = LateralStatus.ready
-    else:
+    elif CS.latActive or CS.standstill:
       hudControl.lateralStatus = LateralStatus.active
+    else:
+      hudControl.lateralStatus = LateralStatus.ready
 
     if not self.CP.passive and self.initialized:
       CO = self.sm['carOutput']
