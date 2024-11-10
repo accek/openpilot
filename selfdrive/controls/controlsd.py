@@ -717,17 +717,16 @@ class Controls:
 
     # Send a "steering required alert" if saturation count has reached the limit
     if lac_log.active and not recent_steer_pressed and not self.CP.notCar and CS.madsEnabled:
+      if lac_log.saturating:
+        self.events.add(EventName.steerSaturating)
       if self.CP.lateralTuning.which() == 'torque' and not self.joystick_mode:
         undershooting = abs(lac_log.desiredLateralAccel) / abs(1e-3 + lac_log.actualLateralAccel) > 1.2
         turning = abs(lac_log.desiredLateralAccel) > 1.0
         good_speed = CS.vEgo > 5
         steer = self.sm['carOutput'].actuatorsOutput.steer
         max_torque = steer > 0.99
-        approaching_max_torque = steer > 0.8
         if undershooting and turning and good_speed and max_torque:
           self.events.add(EventName.steerSaturated)
-        elif turning and good_speed and approaching_max_torque:
-          self.events.add(EventName.steerSaturating)
       elif lac_log.saturated:
         # TODO probably should not use dpath_points but curvature
         dpath_points = lat_plan.dPathPoints if self.model_use_lateral_planner else model_v2.position.y
@@ -744,8 +743,6 @@ class Controls:
 
           if left_deviation or right_deviation:
             self.events.add(EventName.steerSaturated)
-      elif lac_log.saturating:
-        self.events.add(EventName.steerSaturating)
 
     # Ensure no NaNs/Infs
     for p in ACTUATOR_FIELDS:
