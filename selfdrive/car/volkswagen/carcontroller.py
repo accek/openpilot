@@ -480,8 +480,11 @@ class CarController(CarControllerBase):
       self.CCP.STOCK_ACC_MIN_SET_SPEED,
     )
     if self.stock_acc_speed_set_button:
-      if self.frame > self.stock_acc_speed_set_button_pressed_frame + self.CCP.BTN_STEP:
+      # Require at least one frame of non-pressing before allowing a new press to mitigate a race condition between button logic
+      # and state update
+      if self.frame > self.stock_acc_speed_set_button_pressed_frame + 2 * self.CCP.BTN_STEP:
         self.stock_acc_speed_set_button = None
+      if self.frame > self.stock_acc_speed_set_button_pressed_frame + self.CCP.BTN_STEP:
         return 0
       else:
         return self.stock_acc_speed_set_button
