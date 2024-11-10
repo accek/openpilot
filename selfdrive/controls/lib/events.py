@@ -614,7 +614,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
       "Take Control",
       "Turn Approaches Steering Limit",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.LOWER, VisualAlert.steerRequired, AudibleAlert.none, 2.),
+      Priority.LOWER, VisualAlert.steerRequired, AudibleAlert.none, 1.),
   },
 
   EventName.steerSaturated: {
