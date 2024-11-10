@@ -191,7 +191,7 @@ void UIStateSP::updateStatus() {
     auto car_control = (*sm)["carControl"].getCarControl();
     auto car_state = (*sm)["carState"].getCarState();
     auto mads_enabled = car_state.getMadsEnabled();
-    status = mads_enabled && (car_control.getLongActive() || car_control.getStockAccRequest()) ? STATUS_ENGAGED : mads_enabled ? STATUS_MADS : STATUS_DISENGAGED;
+    status = mads_enabled && (car_control.getLongActive() || car_control.getStockAccActive()) ? STATUS_ENGAGED : mads_enabled ? STATUS_MADS : STATUS_DISENGAGED;
 
     if (mads_enabled != last_mads_enabled) {
       mads_path_state = true;

@@ -380,7 +380,8 @@ struct CarControl {
   latActive @11: Bool;
   longActive @12: Bool;
   vCruise @17 :Float32;  # actual set speed
-  stockAccRequest @18 :Bool;
+  stockAccArmed @19 :Bool;
+  stockAccActive @18 :Bool;
 
   # Actuator commands as computed by controlsd
   actuators @6 :Actuators;

@@ -66,8 +66,8 @@ class CarController(CarControllerBase):
     self.steady_speed = 0
     self.acc_type = -1
     self.send_count = 0
-    self.stock_acc_speed_set_button = None
-    self.stock_acc_speed_set_button_pressed_frame = None
+    self.stock_acc_button = None
+    self.stock_acc_button_pressed_frame = None
 
   def update(self, CC, CS, now_nanos):
     self.sm.update(0)
@@ -104,6 +104,7 @@ class CarController(CarControllerBase):
         self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends)
         self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends)
         self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_3, CANBUS.pt, can_sends)
       self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends)
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends)
 
@@ -180,28 +181,32 @@ class CarController(CarControllerBase):
 
     accel = 0
     if self.CP.openpilotLongitudinalControl:
-      cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
-      # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety,
-      # otherwise ACC will fault after it detects a predefined number of missing messages.
-      acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
-      acc_override = (CC.cruiseControl.override or (acc_active and CS.out.gasPressed)) and not CS.out.brakePressed and not cancel_pressed
-      acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
-                                               CS.out.accFaulted, acc_active)
-      accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if acc_active and not acc_override else 0
-      stopping = actuators.longControlState == LongCtrlState.stopping
-      near_stop = stopping and CS.out.vEgo < self.CP.vEgoStopping
-      starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-      lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
-      if self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2):
-        self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
-                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
-                                                          CS.out.vEgo, CS.out.aEgo)
-        self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
-                                                          acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
-                                                          CS.out.vEgo, CS.out.aEgo)
-
-    if self.CP.openpilotLongitudinalControl and self.can_forward_message(CS, self.CCS.MSG_TSK):
-      self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
+      if CC.stockAccArmed:
+        self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends)
+      else:
+        cancel_pressed = any(be.type == ButtonType.cancel for be in CS.out.buttonEvents)
+        # Additional conditions in acc_active and acc_override are to ensure that no messages are filtered out by panda safety,
+        # otherwise ACC will fault after it detects a predefined number of missing messages.
+        acc_active = CC.longActive and not CS.out.brakePressed and not cancel_pressed
+        acc_override = (CC.cruiseControl.override or (acc_active and CS.out.gasPressed)) and not CS.out.brakePressed and not cancel_pressed
+        acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, acc_override,
+                                                CS.out.accFaulted, acc_active)
+        accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if acc_active and not acc_override else 0
+        stopping = actuators.longControlState == LongCtrlState.stopping
+        near_stop = stopping and CS.out.vEgo < self.CP.vEgoStopping
+        starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
+        lead_accel = self.calculate_lead_accel(radar_state) if radar_state is not None else None
+        if self.can_forward_message(CS, self.CCS.MSG_ACC_1) or self.can_forward_message(CS, self.CCS.MSG_ACC_2):
+          self.forward_message(CS, self.CCS.MSG_ACC_1, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_1, CS.acc_type, accel,
+                                                            acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
+                                                            CS.out.vEgo, CS.out.aEgo)
+          self.forward_message(CS, self.CCS.MSG_ACC_2, CANBUS.pt, can_sends, self.CCS.create_acc_accel_control_2, CS.acc_type, accel,
+                                                            acc_control, near_stop, starting, CS.esp_hold_confirmation, lead_accel,
+                                                            CS.out.vEgo, CS.out.aEgo)
+        if self.can_forward_message(CS, self.CCS.MSG_TSK):
+          self.forward_message(CS, self.CCS.MSG_TSK, CANBUS.cam, can_sends, self.CCS.create_tsk_update, CS.stock_values)
 
     # **** HUD Controls ***************************************************** #
 
@@ -218,22 +223,26 @@ class CarController(CarControllerBase):
       self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends, self.CCS.create_lka_hud_control,
                            CS.madsEnabled, CC.latActive, hud_alert, hud_control)
 
-    if self.CP.openpilotLongitudinalControl and (
-        self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_1) or
-        self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2) or
-        self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_3)):
-      lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal, radar_state) if radar_state is not None else 0
-      acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, acc_override, CS.out.accFaulted, acc_active)
-      # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
-      set_speed = hud_control.setSpeed * CV.MS_TO_KPH
-      current_speed = CS.out.vEgo * CV.MS_TO_KPH
-      set_speed_reached = abs(set_speed - current_speed) <= 3
-      self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_1,
-                           acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
-      self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_2,
-                           acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
-      self.forward_message(CS, self.CCS.MSG_ACC_HUD_3, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_3,
-                           acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
+    if self.CP.openpilotLongitudinalControl:
+      if CC.stockAccArmed:
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_3, CANBUS.pt, can_sends)
+      elif self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_1) or \
+          self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_2) or \
+          self.can_forward_message(CS, self.CCS.MSG_ACC_HUD_3):
+        lead_distance = self.calculate_lead_distance(CS.out, hud_control, CS.upscale_lead_car_signal, radar_state) if radar_state is not None else 0
+        acc_hud_status = self.CCS.acc_hud_status_value(CS.out.cruiseState.available, acc_override, CS.out.accFaulted, acc_active)
+        # FIXME: follow the recent displayed-speed updates, also use mph_kmh toggle to fix display rounding problem?
+        set_speed = hud_control.setSpeed * CV.MS_TO_KPH
+        current_speed = CS.out.vEgo * CV.MS_TO_KPH
+        set_speed_reached = abs(set_speed - current_speed) <= 3
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_1, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_1,
+                            acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_2, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_2,
+                            acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
+        self.forward_message(CS, self.CCS.MSG_ACC_HUD_3, CANBUS.pt, can_sends, self.CCS.create_acc_hud_control_3,
+                            acc_hud_status, set_speed, set_speed_reached, lead_distance, hud_control.leadDistanceBars)
 
     # **** Stock ACC Button Controls **************************************** #
 
@@ -244,11 +253,10 @@ class CarController(CarControllerBase):
       set_speed_ms = hud_control.setSpeed
       if set_speed_ms > 250 * CV.KPH_TO_MS:
         set_speed_ms = None
-      stock_acc_speed_set_button = self.calculate_stock_acc_speed_set_button(CS, set_speed_ms)
+      stock_acc_button = self.calculate_stock_acc_button(CS, set_speed_ms, CC.stockAccActive)
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
-                           frame='auto', buttons=stock_acc_speed_set_button,
-                           resume=(not CS.stock_acc_overriding and CC.stockAccRequest),
-                           cancel=(CS.stock_acc_overriding and not CC.stockAccRequest))
+                           frame='auto', buttons=stock_acc_button,
+                           cancel=(CS.stock_acc_overriding and not CC.stockAccActive))
 
     if not (CC.cruiseControl.cancel or CC.cruiseControl.resume) and CS.out.cruiseState.enabled:
       if not self.CP.pcmCruiseSpeed:
@@ -465,7 +473,7 @@ class CarController(CarControllerBase):
         return False
     can_sends.append(self.packer_pt.make_can_msg(msg_name, to_bus, new_values))
 
-  def calculate_stock_acc_speed_set_button(self, CS, target_set_speed):
+  def calculate_stock_acc_button(self, CS, target_set_speed, stock_acc_requested):
     if not CS.out.cruiseState.available:
       return 0
     stock_set_speed = CS.stock_acc_set_speed
@@ -479,29 +487,33 @@ class CarController(CarControllerBase):
         if stock_set_speed is not None else self.CCP.STOCK_ACC_MIN_SET_SPEED,
       self.CCP.STOCK_ACC_MIN_SET_SPEED,
     )
-    if self.stock_acc_speed_set_button:
+    if self.stock_acc_button:
       # Require at least one frame of non-pressing before allowing a new press to mitigate a race condition between button logic
       # and state update
-      if self.frame > self.stock_acc_speed_set_button_pressed_frame + 2 * self.CCP.BTN_STEP:
-        self.stock_acc_speed_set_button = None
-      if self.frame > self.stock_acc_speed_set_button_pressed_frame + self.CCP.BTN_STEP:
+      if self.frame > self.stock_acc_button_pressed_frame + 2 * self.CCP.BTN_STEP:
+        self.stock_acc_button = None
+      if self.frame > self.stock_acc_button_pressed_frame + self.CCP.BTN_STEP:
         return 0
       else:
-        return self.stock_acc_speed_set_button
+        return self.stock_acc_button
     elif any(be.type == ButtonType.setCruise for be in CS.out.buttonEvents):
       # Forward SET directly, so that nonexact speeds are not rounded to the nearest step
-      self.stock_acc_speed_set_button = 3
-      self.stock_acc_speed_set_button_pressed_frame = self.frame
-      return 3
+      self.stock_acc_button = 4
+      self.stock_acc_button_pressed_frame = self.frame
+      return 4
     elif target_set_speed is None:
       return 0
     elif stock_set_speed is None or abs(step_up_speed - target_set_speed) < abs(stock_set_speed - target_set_speed):
-      self.stock_acc_speed_set_button = 1
-      self.stock_acc_speed_set_button_pressed_frame = self.frame
+      self.stock_acc_button = 1
+      self.stock_acc_button_pressed_frame = self.frame
       return 1
     elif abs(step_down_speed - target_set_speed) < abs(stock_set_speed - target_set_speed):
-      self.stock_acc_speed_set_button = 2
-      self.stock_acc_speed_set_button_pressed_frame = self.frame
+      self.stock_acc_button = 2
+      self.stock_acc_button_pressed_frame = self.frame
       return 2
+    elif not CS.stock_acc_overriding and stock_acc_requested:
+      self.stock_acc_button = 3
+      self.stock_acc_button_pressed_frame = self.frame
+      return 3
     else:
       return 0

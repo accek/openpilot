@@ -650,12 +650,11 @@ class Controls:
                    CS.latActive and \
                    self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated and \
                    not self.process_not_running
-    CC.longActive = self.enabled_long and \
-                    not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and \
+    long_requested = self.enabled_long and not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill))
+    CC.longActive = long_requested and \
                     not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
-    CC.stockAccRequest = self.enabled_long and \
-                         not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) and \
-                         self.v_cruise_helper.v_cruise_cluster_kph * CV.KPH_TO_MS > self.op_long_max_speed
+    CC.stockAccArmed = self.v_cruise_helper.v_cruise_cluster_kph * CV.KPH_TO_MS > self.op_long_max_speed
+    CC.stockAccActive = long_requested and CC.stockAccArmed
 
     actuators = CC.actuators
     actuators.longControlState = self.LoC.long_control_state
@@ -770,14 +769,16 @@ class Controls:
     # decrement personality on distance button press
     if self.CP.openpilotLongitudinalControl:
       new_personality = self.personality
-      if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
-        new_personality = (self.personality - 1) % 5
-      elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseUp for be in CS.buttonEvents) \
-          and self.personality < 4:
-        new_personality = self.personality + 1
-      elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseDown for be in CS.buttonEvents) \
-          and self.personality > 0:
-        new_personality = self.personality - 1
+      if not CC.stockAccArmed:
+        # Ignore personality buttons if stock ACC is armed
+        if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
+          new_personality = (self.personality - 1) % 5
+        elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseUp for be in CS.buttonEvents) \
+            and self.personality < 4:
+          new_personality = self.personality + 1
+        elif any(not be.pressed and be.type == ButtonType.gapAdjustCruiseDown for be in CS.buttonEvents) \
+            and self.personality > 0:
+          new_personality = self.personality - 1
       if new_personality != self.personality and not self.experimental_mode_update:
         self.personality = new_personality
         self.params.put_nonblocking('LongitudinalPersonality', str(new_personality))
