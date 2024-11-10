@@ -862,7 +862,7 @@ class Controls:
         self.sm['liveCalibration'].calStatus != log.LiveCalibrationData.Status.calibrated or \
         self.process_not_running:
       hudControl.lateralStatus = LateralStatus.unavailable
-    elif CC.latActive or CS.standstill:
+    elif CC.latActive or (CS.standstill and (not self.mads_paused or not self.mads_pausing_enabled)):
       hudControl.lateralStatus = LateralStatus.active
     else:
       hudControl.lateralStatus = LateralStatus.ready
