@@ -85,6 +85,8 @@ class LatControlTorque(LatControl):
 
     self.use_lateral_jerk = False  # TODO: make this a parameter in the UI
 
+    self.saturation_prediction_time = 2.5
+
     # Twilsonco's Lateral Neural Network Feedforward
     self.use_nn = CI.has_lateral_torque_nn
 
@@ -269,6 +271,12 @@ class LatControlTorque(LatControl):
                                       speed=CS.vEgo,
                                       freeze_integrator=freeze_integrator)
 
+      max_predicted_torque = 0.0
+      if model_good:
+        max_predicted_lateral_accel = np.max(np.abs(np.array(model_data.acceleration.y) * (np.array(model_data.acceleration.t) <= self.saturation_prediction_time)))
+        max_predicted_torque = self.torque_from_lateral_accel(LatControlInputs(max_predicted_lateral_accel - roll_compensation, roll_compensation, CS.vEgo, CS.aEgo),
+                                                              self.torque_params, 0.0, lateral_accel_deadzone, friction_compensation=False, gravity_adjusted=True)
+
       pid_log.active = True
       pid_log.p = self.pid.p
       pid_log.i = self.pid.i
@@ -277,7 +285,8 @@ class LatControlTorque(LatControl):
       pid_log.output = -output_torque
       pid_log.actualLateralAccel = actual_lateral_accel
       pid_log.desiredLateralAccel = desired_lateral_accel
-      pid_log.saturating = self._check_saturating(self.steer_max * 0.8 < abs(output_torque), CS, steer_limited)
+      pid_log.maxPredictedTorque = max_predicted_torque
+      pid_log.saturating = self._check_saturating(self.steer_max * 0.8 < max(abs(output_torque), max_predicted_torque), CS, steer_limited)
       pid_log.saturated = self._check_saturated(self.steer_max - abs(output_torque) < 1e-3, CS, steer_limited)
       if nn_log is not None:
         pid_log_sp.nnLog = nn_log

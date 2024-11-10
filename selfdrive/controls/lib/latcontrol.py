@@ -9,7 +9,7 @@ MIN_LATERAL_CONTROL_SPEED = 0.3  # m/s
 class LatControl(ABC):
   def __init__(self, CP, CI):
     self.sat_count_rate = 1.0 * DT_CTRL
-    self.sat_limit = [CP.steerLimitTimer / 3., CP.steerLimitTimer]
+    self.sat_limit = [CP.steerLimitTimer / 2., CP.steerLimitTimer]
     self.sat_count = [0., 0.]
     self.sat_check_min_speed = 10.
 
