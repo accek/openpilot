@@ -471,7 +471,7 @@ def main() -> None:
         last_fetch = read_time_from_param(params, "UpdaterLastFetchTime")
         timed_out = last_fetch is None or (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - last_fetch > datetime.timedelta(days=3))
         user_requested_fetch = wait_helper.user_request == UserRequest.FETCH
-        if params.get_bool("NetworkMetered") and not timed_out and not user_requested_fetch:
+        if params.get_bool("NetworkMetered") and not params.get_bool("UpdateOnMetered") and not timed_out and not user_requested_fetch:
           cloudlog.info("skipping fetch, connection metered")
         elif wait_helper.user_request == UserRequest.CHECK:
           cloudlog.info("skipping fetch, only checking")

@@ -42,6 +42,8 @@ def manager_init() -> None:
     ("LanguageSetting", "main_en"),
     ("OpenpilotEnabledToggle", "1"),
     ("LongitudinalPersonality", str(custom.LongitudinalPersonalitySP.standard)),
+    ("UpdateOnMetered", "0"),
+    ("UploadOnMetered", "0"),
 
     ("AboveSpeedResume", "0"),
     ("AccelPersonality", str(custom.AccelerationPersonality.stock)),

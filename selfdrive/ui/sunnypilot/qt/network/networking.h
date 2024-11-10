@@ -89,6 +89,8 @@ private:
   ButtonControlSP* editApnButton;
   ButtonControlSP* hiddenNetworkButton;
   ToggleControlSP* meteredToggle;
+  ToggleControlSP* uploadOnMeteredToggle;
+  ToggleControlSP* updateOnMeteredToggle;
   WifiManager* wifi = nullptr;
   Params params;
 

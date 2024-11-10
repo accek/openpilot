@@ -169,6 +169,22 @@
         <source>Ngrok Service</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Upload on Metered</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Upload logs even if on a metered connection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Update on Metered</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Update logs even if on a metered connection</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>AnnotatedCameraWidget</name>

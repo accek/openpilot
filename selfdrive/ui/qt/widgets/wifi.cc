@@ -96,9 +96,9 @@ void WiFiPromptWidget::updateState(const UIState &s) {
 
   auto &sm = *(s.sm);
 
+  auto network_metered = sm["deviceState"].getDeviceState().getNetworkMetered();
   auto network_type = sm["deviceState"].getDeviceState().getNetworkType();
-  auto uploading = network_type == cereal::DeviceState::NetworkType::WIFI ||
-      network_type == cereal::DeviceState::NetworkType::ETHERNET ||
-      (network_type != cereal::DeviceState::NetworkType::NONE && !params.getBool("GsmMetered"));
+  auto uploading = network_type != cereal::DeviceState::NetworkType::NONE
+      && (!network_metered || !params.getBool("UploadOnMetered"));
   stack->setCurrentIndex(uploading ? 1 : 0);
 }
