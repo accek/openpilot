@@ -64,12 +64,12 @@ def create_tsk_update(values, stock_values):
 
 
 def lernmodus_value(lateral_status, lane_visible, lane_depart):
-  if lateral_status == LateralStatus.unavailable:
-    return 0
-  elif lane_depart:
+  if lane_depart:
     return 2
-  elif lane_visible and lateral_status == LateralStatus.active:
-    return 3
+  elif lateral_status == LateralStatus.unavailable:
+    return 0
+  elif lateral_status == LateralStatus.active:
+    return 3 if lane_visible else 2
   else:
     return 1
 
