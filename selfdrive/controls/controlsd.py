@@ -53,6 +53,7 @@ EventName = car.CarEvent.EventName
 ButtonType = car.CarState.ButtonEvent.Type
 SafetyModel = car.CarParams.SafetyModel
 GearShifter = car.CarState.GearShifter
+LateralStatus = car.CarControl.HUDControl.LateralStatus
 
 IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
 CSID_MAP = {"1": EventName.roadCameraError, "2": EventName.wideRoadCameraError, "0": EventName.driverCameraError}
@@ -826,7 +827,7 @@ class Controls:
 
     model_v2 = self.sm['modelV2']
     desire_prediction = model_v2.meta.desirePrediction
-    if len(desire_prediction) and ldw_allowed:
+    if len(desire_prediction):
       right_lane_visible = model_v2.laneLineProbs[2] > 0.5
       left_lane_visible = model_v2.laneLineProbs[1] > 0.5
       l_lane_change_prob = desire_prediction[Desire.laneChangeLeft]
@@ -836,10 +837,12 @@ class Controls:
       l_lane_close = left_lane_visible and (lane_lines[1].y[0] > -(1.08 + CAMERA_OFFSET))
       r_lane_close = right_lane_visible and (lane_lines[2].y[0] < (1.08 - CAMERA_OFFSET))
 
+      hudControl.rightLaneVisible = right_lane_visible
+      hudControl.leftLaneVisible = left_lane_visible
       hudControl.leftLaneDepart = bool(l_lane_change_prob > LANE_DEPARTURE_THRESHOLD and l_lane_close)
       hudControl.rightLaneDepart = bool(r_lane_change_prob > LANE_DEPARTURE_THRESHOLD and r_lane_close)
 
-    if hudControl.rightLaneDepart or hudControl.leftLaneDepart:
+    if (hudControl.rightLaneDepart or hudControl.leftLaneDepart) and ldw_allowed:
       self.events.add(EventName.ldw)
 
     clear_event_types = set()
@@ -854,6 +857,19 @@ class Controls:
     if current_alert:
       hudControl.visualAlert = current_alert.visual_alert
       hudControl.audibleAlert = current_alert.audible_alert
+
+    standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
+    if not (self.active or self.mads_ndlob) or \
+        CS.steerFaultTemporary or \
+        CS.steerFaultPermanent or \
+        not CS.madsEnabled or \
+        self.sm['liveCalibration'].calStatus != log.LiveCalibrationData.Status.calibrated or \
+        self.process_not_running:
+      hudControl.lateralStatus = LateralStatus.unavailable
+    elif CS.latActive or (standstill and not self.joystick_mode):
+      hudControl.lateralStatus = LateralStatus.ready
+    else:
+      hudControl.lateralStatus = LateralStatus.active
 
     if not self.CP.passive and self.initialized:
       CO = self.sm['carOutput']

@@ -1,4 +1,7 @@
+from cereal import car
 from openpilot.common.numpy_fast import clip, interp
+
+LateralStatus = car.CarControl.HUDControl.LateralStatus
 
 MSG_STEERING = "HCA_01"
 MSG_EPS = "LH_EPS_03"
@@ -60,14 +63,25 @@ def create_tsk_update(values, stock_values):
   return values
 
 
-def create_lka_hud_control(values, mads_enabled, lat_active, hud_alert, hud_control):
+def lernmodus_value(lateral_status, lane_visible, lane_depart):
+  if lateral_status == LateralStatus.unavailable:
+    return 0
+  elif lane_depart:
+    return 2
+  elif lane_visible and lateral_status == LateralStatus.active:
+    return 3
+  else:
+    return 1
+
+
+def create_lka_hud_control(values, hud_alert, hud_control):
   left_lane_visible = hud_control.lanesVisible and hud_control.leftLaneVisible
   right_lane_visible = hud_control.lanesVisible and hud_control.rightLaneVisible
   values.update({
-    "LDW_Status_LED_gelb": 1 if mads_enabled and not lat_active else 0,
-    "LDW_Status_LED_gruen": 1 if lat_active else 0,
-    "LDW_Lernmodus_links": 3 if hud_control.leftLaneDepart else 1 + left_lane_visible,
-    "LDW_Lernmodus_rechts": 3 if hud_control.rightLaneDepart else 1 + right_lane_visible,
+    "LDW_Status_LED_gelb": 1 if hud_control.lateralStatus == LateralStatus.ready else 0,
+    "LDW_Status_LED_gruen": 1 if hud_control.lateralStatus == LateralStatus.active else 0,
+    "LDW_Lernmodus_links": lernmodus_value(hud_control.lateralStatus, left_lane_visible, hud_control.leftLaneDepart),
+    "LDW_Lernmodus_rechts": lernmodus_value(hud_control.lateralStatus, right_lane_visible, hud_control.rightLaneDepart),
   })
   if hud_alert > 0:
     values["LDW_Texte"] = hud_alert

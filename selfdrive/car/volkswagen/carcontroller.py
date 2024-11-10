@@ -221,7 +221,7 @@ class CarController(CarControllerBase):
           self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
         )
       self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends, self.CCS.create_lka_hud_control,
-                           CS.madsEnabled, CC.latActive, hud_alert, hud_control)
+                           hud_alert, hud_control)
 
     if self.CP.openpilotLongitudinalControl:
       if CC.stockAccArmed:
