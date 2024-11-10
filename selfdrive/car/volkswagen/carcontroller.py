@@ -496,7 +496,7 @@ class CarController(CarControllerBase):
         return 0
       else:
         return self.stock_acc_button
-    elif any(be.type == ButtonType.setCruise for be in CS.out.buttonEvents):
+    elif any(be.type == ButtonType.setCruise for be in CS.out.buttonEvents) and stock_acc_requested:
       # Forward SET directly, so that nonexact speeds are not rounded to the nearest step
       self.stock_acc_button = 4
       self.stock_acc_button_pressed_frame = self.frame
