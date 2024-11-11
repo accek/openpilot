@@ -148,6 +148,7 @@ def create_acc_accel_control_1(values, acc_type, accel, acc_control, stopping, s
 
   # For stock comfort bands, see https://colab.research.google.com/drive/1y80X3VBACwLfMLvUE57GV4Yv6N8JjEmG?usp=sharing
   values = {
+    "COUNTER": values["COUNTER"],
     "ACC_Typ": acc_type,
     "ACC_Status_ACC": acc_control,
     "ACC_StartStopp_Info": max(startstop, values["ACC_StartStopp_Info"]),  # stock radar may know better
@@ -175,6 +176,7 @@ def create_acc_accel_control_2(values, acc_type, accel, acc_control, stopping, s
     acc_hold_type = 0
 
   values = {
+    "COUNTER": values["COUNTER"],
     "ACC_Anhalteweg": 0.3 if stopping else 20.46,  # Distance to stop (stopping coordinator handles terminal roll-out)
     "ACC_Freilauf_Info": 2 if acc_enabled else 0,
     "ACC_Folgebeschl": clip(lead_accel, -4.6, 2.99) if lead_accel is not None else 3.02,
