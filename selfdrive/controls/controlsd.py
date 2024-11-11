@@ -874,7 +874,7 @@ class Controls:
         self.steer_limited = abs(CC.actuators.steeringAngleDeg - CO.actuatorsOutput.steeringAngleDeg) > \
                              STEER_ANGLE_SATURATION_THRESHOLD
       else:
-        self.steer_limited = abs(CC.actuators.steer - CO.actuatorsOutput.steer) > 1e-2
+        self.steer_limited = abs(CC.actuators.steer - CO.actuatorsOutput.steer) > 1e-1
 
     force_decel = (self.sm['driverMonitoringState'].awarenessStatus < 0.) or \
                   (self.state == State.softDisabling)
