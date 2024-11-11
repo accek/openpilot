@@ -23,16 +23,17 @@ class LatControl(ABC):
   def reset(self):
     self.sat_count = [0., 0.]
 
-  def _check_saturating(self, saturating, CS, steer_limited):
-    return self.__check_saturation(0, saturating, CS, steer_limited)
+  def _check_saturating(self, saturating, CS):
+    return self.__check_saturation(0, saturating, CS, False)
 
   def _check_saturated(self, saturated, CS, steer_limited):
     return self.__check_saturation(1, saturated, CS, steer_limited)
 
   def __check_saturation(self, key, saturation, CS, steer_limited):
-    if saturation and CS.vEgo > self.sat_check_min_speed and not steer_limited and not CS.steeringPressed:
-      self.sat_count[key] += self.sat_count_rate
-    else:
-      self.sat_count[key] -= self.sat_count_rate
-    self.sat_count[key] = clip(self.sat_count[key], 0.0, self.sat_limit[key])
+    if not steer_limited and not CS.steeringPressed:
+      if saturation and CS.vEgo > self.sat_check_min_speed:
+        self.sat_count[key] += self.sat_count_rate
+      else:
+        self.sat_count[key] -= self.sat_count_rate
+      self.sat_count[key] = clip(self.sat_count[key], 0.0, self.sat_limit[key])
     return self.sat_count[key] > (self.sat_limit[key] - 1e-3)
