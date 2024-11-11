@@ -206,13 +206,12 @@ class CarController(CarControllerBase):
     if self.frame % self.CCP.LDW_STEP == 0 and self.can_forward_message(CS, self.CCS.MSG_LKA_HUD):
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
-        hud_alert = self.CCP.LDW_MESSAGES.get(
-          {
-            AudibleAlert.none: "laneAssistTakeOver",
-            AudibleAlert.warningImmediate: "laneAssistTakeOverUrgent"
-          }.get(hud_control.audibleAlert, "laneAssistTakeOverChime"),
-          self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
-        )
+        if hud_control.audibleAlert == AudibleAlert.none:
+          hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
+        elif hud_control.audibleAlert == AudibleAlert.warningImmediate:
+          hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOverUrgent"]
+        else:
+          hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOverChime"]
       self.forward_message(CS, self.CCS.MSG_LKA_HUD, CANBUS.pt, can_sends, self.CCS.create_lka_hud_control,
                            hud_alert, hud_control)
 
