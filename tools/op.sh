@@ -34,7 +34,7 @@ function op_run_command() {
 }
 
 # be default, assume openpilot dir is in current directory
-OPENPILOT_ROOT=$(pwd)
+OPENPILOT_ROOT=${OPENPILOT_ROOT:-$(pwd)}
 function op_get_openpilot_dir() {
   while [[ "$OPENPILOT_ROOT" != '/' ]];
   do
