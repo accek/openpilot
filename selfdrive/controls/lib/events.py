@@ -11,6 +11,7 @@ from openpilot.common.conversions import Conversions as CV
 from openpilot.common.git import get_short_branch
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.locationd.calibrationd import MIN_SPEED_FILTER
+from openpilot.system.version import get_build_metadata
 
 AlertSize = log.ControlsState.AlertSize
 AlertStatus = log.ControlsState.AlertStatus
@@ -225,11 +226,14 @@ def user_soft_disable_alert(alert_text_2: str) -> AlertCallbackType:
   return func
 
 def startup_master_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int) -> Alert:
-  branch = get_short_branch()  # Ensure get_short_branch is cached to avoid lags on startup
   if "REPLAY" in os.environ:
+    origin = "replay"
     branch = "replay"
-
-  return StartupAlert("WARNING: This branch is not tested", branch, alert_status=AlertStatus.userPrompt)
+  else:
+    build_metadata = get_build_metadata()
+    origin = build_metadata.openpilot.git_normalized_origin
+    branch = get_short_branch()  # Ensure get_short_branch is cached to avoid lags on startup
+  return StartupAlert("Be ready to take over at any time", f"Software: {origin}/{branch}", alert_status=AlertStatus.userPrompt)
 
 def below_engage_speed_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int) -> Alert:
   return NoEntryAlert(f"Drive above {get_display_speed(CP.minEnableSpeed, metric)} to engage")
@@ -614,7 +618,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
       "Take Control",
       "Turn Approaches Steering Limit",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.LOWER, VisualAlert.steerRequired, AudibleAlert.none, 1.),
+      Priority.LOWER, VisualAlert.steerRequired, AudibleAlert.none, 2.),
   },
 
   EventName.steerSaturated: {
