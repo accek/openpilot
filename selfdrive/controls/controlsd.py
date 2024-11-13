@@ -259,9 +259,11 @@ class Controls:
       self.events.add(EventName.torqueNNLoad)
 
     # Block resume if cruise never previously enabled
-    resume_pressed = any(be.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for be in CS.buttonEvents)
-    if not self.CP.pcmCruise and not self.v_cruise_helper.v_cruise_initialized and resume_pressed:
-      self.events.add(EventName.resumeBlocked)
+    if not self.CP.resumeButtonSetsDefaultVCruise:
+      resume_buttons = self.v_cruise_helper.resume_buttons
+      resume_pressed = any(be.type in resume_buttons for be in CS.buttonEvents)
+      if not self.CP.pcmCruise and not self.v_cruise_helper.v_cruise_initialized and resume_pressed:
+        self.events.add(EventName.resumeBlocked)
 
     if not self.CP.notCar:
       if not self.d_camera_hardware_missing:

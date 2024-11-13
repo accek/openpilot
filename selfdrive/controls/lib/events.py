@@ -617,7 +617,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.WARNING: Alert(
       "Take Control",
       "Turn Approaches Steering Limit",
-      AlertStatus.userPrompt, AlertSize.mid,
+      AlertStatus.userPrompt, AlertSize.small,
       Priority.LOWER, VisualAlert.steerRequired, AudibleAlert.none, 2.),
   },
 
