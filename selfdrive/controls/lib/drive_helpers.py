@@ -77,6 +77,7 @@ class VCruiseHelper:
     self.v_cruise_kph_last = 0
     self.button_timers = {ButtonType.decelCruise: 0,
                           ButtonType.accelCruise: 0,
+                          ButtonType.setCruise: 0,
                           ButtonType.gapAdjustCruise: 0,
                           ButtonType.gapAdjustCruiseUp: 0,
                           ButtonType.gapAdjustCruiseDown: 0}
@@ -144,14 +145,8 @@ class VCruiseHelper:
                                               ButtonType.gapAdjustCruiseDown):
       return
 
-    resume_button = ButtonType.accelCruise
-    if not self.CP.pcmCruiseSpeed:
-      if self.CP.carName in ("chrysler", "volkswagen"):
-        resume_button = ButtonType.resumeCruise
-
-    # Don't adjust speed when pressing resume to exit standstill
     cruise_standstill = self.button_change_states[button_type]["standstill"] or CS.cruiseState.standstill
-    if button_type == resume_button and cruise_standstill:
+    if button_type in self.resume_buttons and cruise_standstill:
       return
 
     # Don't adjust speed if we've enabled since the button was depressed (some ports enable on rising edge)
@@ -163,16 +158,20 @@ class VCruiseHelper:
       self.initialize_v_cruise(CS, experimental_mode, is_metric, dynamic_experimental_control)
       return
 
-    pressed_value = (1 if long_press else v_cruise_delta_mltplr) if reverse_acc else (v_cruise_delta_mltplr if long_press else 1)
-    long_press_state = not long_press if reverse_acc else long_press
-    v_cruise_delta = v_cruise_delta * pressed_value
-    if long_press_state and self.v_cruise_kph % v_cruise_delta != 0:  # partial interval
-      self.v_cruise_kph = CRUISE_NEAREST_FUNC[button_type](self.v_cruise_kph / v_cruise_delta) * v_cruise_delta
-    else:
-      self.v_cruise_kph += v_cruise_delta * CRUISE_INTERVAL_SIGN[button_type]
+    if button_type in (ButtonType.decelCruise, ButtonType.accelCruise):
+      pressed_value = (1 if long_press else v_cruise_delta_mltplr) if reverse_acc else (v_cruise_delta_mltplr if long_press else 1)
+      long_press_state = not long_press if reverse_acc else long_press
+      v_cruise_delta = v_cruise_delta * pressed_value
+      if long_press_state and self.v_cruise_kph % v_cruise_delta != 0:  # partial interval
+        self.v_cruise_kph = CRUISE_NEAREST_FUNC[button_type](self.v_cruise_kph / v_cruise_delta) * v_cruise_delta
+      else:
+        self.v_cruise_kph += v_cruise_delta * CRUISE_INTERVAL_SIGN[button_type]
 
-    # If set is pressed while overriding, clip cruise speed to minimum of vEgo
-    if CS.gasPressed and button_type in (ButtonType.decelCruise, ButtonType.setCruise):
+    if button_type == ButtonType.setCruise:
+      self.v_cruise_kph = CS.vEgo * CV.MS_TO_KPH
+
+    # If decel is pressed while overriding, clip cruise speed to minimum of vEgo
+    if CS.gasPressed and button_type == ButtonType.decelCruise and self.CP.decelButtonLimitedToVEgoWhenOverriding:
       self.v_cruise_kph = max(self.v_cruise_kph, CS.vEgo * CV.MS_TO_KPH)
 
     self.v_cruise_kph = clip(round(self.v_cruise_kph, 1), self.v_cruise_min, V_CRUISE_MAX)
@@ -189,14 +188,17 @@ class VCruiseHelper:
         self.button_timers[b.type.raw] = 1 if b.pressed else 0
         self.button_change_states[b.type.raw] = {"standstill": CS.cruiseState.standstill, "enabled": enabled}
 
+  @property
+  def resume_buttons(self):
+    return (ButtonType.accelCruise, ButtonType.resumeCruise) if self.CP.accelButtonResumesCruise or self.CP.pcmCruiseSpeed \
+           else (ButtonType.accelCruise,)
+
   def initialize_v_cruise(self, CS, experimental_mode: bool, is_metric, dynamic_experimental_control: bool) -> None:
     # initializing is handled by the PCM
     if self.CP.pcmCruise and self.CP.pcmCruiseSpeed:
       return
 
     initial = V_CRUISE_INITIAL_EXPERIMENTAL_MODE if experimental_mode and not dynamic_experimental_control else V_CRUISE_INITIAL
-
-    resume_buttons = (ButtonType.accelCruise, ButtonType.resumeCruise)
 
     if not self.CP.pcmCruiseSpeed:
       if self.CP.carName == "honda":
@@ -205,16 +207,13 @@ class VCruiseHelper:
         initial = HYUNDAI_V_CRUISE_MIN[is_metric]
       elif self.CP.carName == "chrysler":
         initial = FCA_V_CRUISE_MIN[is_metric]
-        if not self.CP.pcmCruiseSpeed:
-          resume_buttons = (ButtonType.resumeCruise,)
       elif self.CP.carName == "mazda":
         initial = MAZDA_V_CRUISE_MIN[is_metric]
       elif self.CP.carName == "volkswagen":
         initial = VOLKSWAGEN_V_CRUISE_MIN[is_metric]
-        if not self.CP.pcmCruiseSpeed:
-          resume_buttons = (ButtonType.resumeCruise,)
 
     # 250kph or above probably means we never had a set speed
+    resume_buttons = self.resume_buttons
     if any(b.type in resume_buttons for b in CS.buttonEvents) and self.v_cruise_kph_last < 250:
       self.v_cruise_kph = self.v_cruise_kph_last
     else:

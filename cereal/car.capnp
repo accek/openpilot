@@ -516,6 +516,10 @@ struct CarParams {
   spFlags @76 :UInt32;       # flags for car specific quirks in sunnypilot
   stockAccOverrideAvailable @77 :Bool;
 
+  accelButtonResumesCruise @78 :Bool;
+  resumeButtonSetsDefaultVCruise @79 :Bool;
+  decelButtonLimitedToVEgoWhenOverriding @80 :Bool;
+
   minEnableSpeed @7 :Float32;
   minSteerSpeed @8 :Float32;
   safetyConfigs @62 :List(SafetyConfig);

@@ -103,6 +103,9 @@ class CarInterface(CarInterfaceBase):
       ret.openpilotLongitudinalControl = False
 
     ret.pcmCruise = not ret.openpilotLongitudinalControl
+    ret.accelButtonResumesCruise = False
+    ret.resumeButtonSetsDefaultVCruise = True
+    ret.decelButtonLimitedToVEgoWhenOverriding = False
     ret.customStockLongAvailable = True
     ret.stoppingControl = True
     ret.stopAccel = -0.55

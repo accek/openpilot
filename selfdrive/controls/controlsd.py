@@ -149,6 +149,7 @@ class Controls:
     self.state = State.disabled
     self.enabled = False
     self.enabled_long = False
+    self.allowed_lat = False
     self.active = False
     self.soft_disable_timer = 0
     self.mismatch_counter = 0
@@ -185,6 +186,7 @@ class Controls:
       self.params.get_bool("BelowSpeedPause") or self.params.get_bool("AboveSpeedResume")
     self.process_not_running = False
     self.experimental_mode_update = False
+    self.prev_lat_active = False
 
     self.op_long_max_speed = float(self.params.get("OpLongMaxSpeed")) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
     if self.op_long_max_speed == 0.0:
@@ -526,9 +528,11 @@ class Controls:
           if CS.cruiseState.enabled and not self.CS_prev.cruiseState.enabled:
             self.v_cruise_helper.initialize_v_cruise(CS, self.experimental_mode, self.is_metric, self.dynamic_experimental_control)
           # Block resume if cruise never previously enabled
-          resume_pressed = any(be.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for be in CS.buttonEvents)
-          if not self.CP.pcmCruise and not self.v_cruise_helper.v_cruise_initialized and resume_pressed:
-            self.current_alert_types.append(ET.NO_ENTRY)
+          if not self.CP.resumeButtonSetsDefaultVCruise:
+            resume_buttons = self.v_cruise_helper.resume_buttons
+            resume_pressed = any(be.type in resume_buttons for be in CS.buttonEvents)
+            if not self.CP.pcmCruise and not self.v_cruise_helper.v_cruise_initialized and resume_pressed:
+              self.current_alert_types.append(ET.NO_ENTRY)
           if self.events.contains(ET.SOFT_DISABLE):
             self.state = State.softDisabling
             self.soft_disable_timer = int(SOFT_DISABLE_TIME / DT_CTRL)
@@ -593,6 +597,7 @@ class Controls:
     # Check if openpilot is engaged and actuators are enabled
     self.enabled = self.state in ENABLED_STATES
     self.enabled_long = self.enabled and CS.cruiseState.enabled
+    self.allowed_lat = self.enabled or not any(et in self.current_alert_types for et in (ET.SOFT_DISABLE, ET.IMMEDIATE_DISABLE))
     self.active = self.state in ACTIVE_STATES
     if self.active:
       self.current_alert_types.append(ET.WARNING)
@@ -644,13 +649,16 @@ class Controls:
     CC.latActive = (self.active or self.mads_ndlob) and \
                    not CS.steerFaultTemporary and \
                    not CS.steerFaultPermanent and \
+                   self.allowed_lat and \
                    (not standstill or self.joystick_mode) and \
                    CS.madsEnabled and \
                    (not CS.brakePressed or self.mads_ndlob) and \
                    (not self.mads_paused or not self.mads_pausing_enabled) and \
                    CS.latActive and \
                    self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated and \
-                   not self.process_not_running
+                   not self.process_not_running \
+                   and (ET.NO_ENTRY not in self.current_alert_types or self.prev_lat_active)
+    self.prev_lat_active = CC.latActive
     long_requested = self.enabled_long and not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill))
     CC.longActive = long_requested and \
                     not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
@@ -799,7 +807,7 @@ class Controls:
     CC.cruiseControl.override = self.enabled_long and not CC.longActive and self.CP.openpilotLongitudinalControl
     CC.cruiseControl.cancel = CS.cruiseState.enabled and \
       (not self.enabled_long or (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) or
-       (any(b.type == ButtonType.cancel for b in CS.buttonEvents) and self.CP.carName == "honda"))
+       (any(b.type == ButtonType.cancel for b in CS.buttonEvents)))
     if self.joystick_mode and self.sm.recv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
       CC.cruiseControl.cancel = True
 
@@ -859,9 +867,11 @@ class Controls:
     if not (self.active or self.mads_ndlob) or \
         CS.steerFaultTemporary or \
         CS.steerFaultPermanent or \
+        not self.allowed_lat or \
         not CS.madsEnabled or \
         self.sm['liveCalibration'].calStatus != log.LiveCalibrationData.Status.calibrated or \
-        self.process_not_running:
+        self.process_not_running or \
+        (ET.NO_ENTRY in self.current_alert_types and not CC.latActive):
       hudControl.lateralStatus = LateralStatus.unavailable
     elif CC.latActive or (standstill and (not self.mads_paused or not self.mads_pausing_enabled)):
       hudControl.lateralStatus = LateralStatus.active
