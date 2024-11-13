@@ -164,7 +164,9 @@ class CarState(CarStateBase):
       self.update_stock_values("ACC_07", ext_cp)
       self.update_stock_values("ACC_13", ext_cp)
       self.update_stock_values("TSK_06", pt_cp)
-      self.stock_acc_overriding = ext_cp.vl["ACC_06"]["ACC_Status_ACC"] in (3, 4, 5, 6)
+      stock_acc_status = ext_cp.vl["ACC_06"]["ACC_Status_ACC"]
+      stock_acc_desired_accel = ext_cp.vl["ACC_06"]["ACC_Sollbeschleunigung_02"]
+      self.stock_acc_overriding = (stock_acc_status in (3, 4) and stock_acc_desired_accel < 3.005) or stock_acc_status in (5, 6, 7)
       self.stock_acc_set_speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
 
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough

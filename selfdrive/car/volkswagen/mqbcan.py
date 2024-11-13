@@ -37,25 +37,22 @@ def create_eps_update(values, ea_simulated_torque):
 
 
 def create_tsk_update(values, stock_values):
-  # Simulate TSK confirming the requested ACC status, even if we override it.
-  # TODO(accek): This is a temporary workaround until we understand the TSK protocol;
-  #              replace it with stock ACC following the state of OP, to enable switchover
-  #              in the future.
+  # Simulate TSK confirming matching the stock ACC status.
+  # Note that when stock ACC is active, panda safety will forward real TSK messages in realtime.
   acc_1 = stock_values.get(MSG_ACC_1)
   if acc_1:
     actual_tsk_status = values["TSK_Status"]
     stock_acc_status = acc_1["ACC_Status_ACC"]
+    stock_acc_desired_accel = acc_1["ACC_Sollbeschleunigung_02"]
     if actual_tsk_status not in (2, 3, 4, 5):
       simulated_tsk_status = actual_tsk_status
-    elif stock_acc_status in (0, 2):  # standby, init
+    elif stock_acc_status in (0, 2) or (stock_acc_status in (3, 4, 5) and stock_acc_desired_accel > 3.005):  # standby, init, active with no accel request
       simulated_tsk_status = 2
     elif stock_acc_status in (1, 3, 4, 5):  # active, main disabled
-      # TODO: understand status 5 and adjust accordingly
       simulated_tsk_status = actual_tsk_status
     else:
       # faults
       simulated_tsk_status = stock_acc_status
-
     values.update({
       "TSK_Status": simulated_tsk_status,
       "TSK_zul_Regelabw": acc_1["ACC_zul_Regelabw_unten"],
