@@ -245,12 +245,12 @@ class CarController(CarControllerBase):
       set_speed_ms = hud_control.setSpeed
       if set_speed_ms > 250 * CV.KPH_TO_MS:
         set_speed_ms = None
-      can_switch_acc = not CS.out.brakePressed and not cancel_pressed and not CS.out.gasPressed
+      can_switch_acc = not CS.out.brakePressed and not cancel_pressed
       stock_acc_requested = CC.stockAccActive and can_switch_acc
       stock_acc_button = self.calculate_stock_acc_button(CS, set_speed_ms, stock_acc_requested)
       self.forward_message(CS, self.CCS.MSG_ACC_BUTTONS, CANBUS.cam, can_sends, self.CCS.create_acc_buttons_control,
                            frame='auto', buttons=stock_acc_button,
-                           cancel=(CS.stock_acc_overriding and not CC.stockAccActive and not CS.out.gasPressed),)
+                           cancel=(CS.stock_acc_overriding and not CC.stockAccActive),)
 
     if not (CC.cruiseControl.cancel or CC.cruiseControl.resume) and CS.out.cruiseState.enabled:
       if not self.CP.pcmCruiseSpeed:
