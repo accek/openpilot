@@ -120,7 +120,7 @@ class CarState(CarStateBase):
     # Refer to VW Self Study Program 890253: Volkswagen Driver Assistance
     # Systems, chapter on Front Assist with Braking: Golf Family for all MQB
     if not self.CP.spFlags & VolkswagenFlagsSP.SP_CC_ONLY_NO_RADAR:
-      ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"])
+      ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"]) or bool(ext_cp.vl["ACC_04"]["ACC_Warnhinweis"]) or bool(ext_cp.vl["ACC_10"]["AWV2_Priowarnung"])
       ret.stockAeb = bool(ext_cp.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(ext_cp.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
 
     # Update ACC radar status.

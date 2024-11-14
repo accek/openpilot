@@ -615,9 +615,9 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
 
   EventName.steerSaturating: {
     ET.WARNING: Alert(
-      "Turn Approaching",
+      "Steering Requested",
       "",
-      AlertStatus.userPrompt, AlertSize.small,
+      AlertStatus.normal, AlertSize.small,
       Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, 2.),
   },
 
