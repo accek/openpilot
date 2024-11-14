@@ -286,7 +286,7 @@ class LatControlTorque(LatControl):
       pid_log.actualLateralAccel = actual_lateral_accel
       pid_log.desiredLateralAccel = desired_lateral_accel
       pid_log.maxPredictedTorque = float(max_predicted_torque)
-      pid_log.saturating = self._check_saturating(self.steer_max * 0.8 < max(abs(output_torque), max_predicted_torque), CS)
+      pid_log.saturating = self._check_saturating(self.steer_max * 0.8 < abs(output_torque) or self.steer_max < max_predicted_torque, CS)
       pid_log.saturated = self._check_saturated(self.steer_max - abs(output_torque) < 1e-3, CS, steer_limited)
       if nn_log is not None:
         pid_log_sp.nnLog = nn_log
