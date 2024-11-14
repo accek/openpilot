@@ -172,7 +172,7 @@ class CarController(CarControllerBase):
       sign = 1 if CS.out.steeringTorque >= 0 else -1
       sim_torque = sim_frame if sim_frame < sim_segment_frames else 2*sim_segment_frames - sim_frame
       sim_torque = min(sim_torque, abs(2*self.apply_steer_last))
-      if driver_monitoring_state is not None and driver_monitoring_state.isDistracted:
+      if driver_monitoring_state is None or driver_monitoring_state.isDistracted or not driver_monitoring_state.faceDetected:
         sim_torque = 0
       ea_simulated_torque = clip(CS.out.steeringTorque - sign*sim_torque, -self.CCP.STEER_MAX, self.CCP.STEER_MAX)
       self.forward_message(CS, self.CCS.MSG_EPS, CANBUS.cam, can_sends, self.CCS.create_eps_update, ea_simulated_torque)
