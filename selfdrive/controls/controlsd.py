@@ -664,7 +664,11 @@ class Controls:
     long_requested = self.enabled_long and not (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill))
     CC.longActive = long_requested and \
                     not self.events.contains(ET.OVERRIDE_LONGITUDINAL)
-    CC.stockAccArmed = self.v_cruise_helper.v_cruise_cluster_kph * CV.KPH_TO_MS > self.op_long_max_speed
+    CC.stockAccArmed = (
+        self.v_cruise_helper.v_cruise_cluster_kph * CV.KPH_TO_MS
+        if self.v_cruise_helper.v_cruise_initialized
+        else CS.vEgoCluster
+      ) > self.op_long_max_speed
     CC.stockAccActive = long_requested and CC.stockAccArmed
 
     actuators = CC.actuators
