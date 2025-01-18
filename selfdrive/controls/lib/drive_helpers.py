@@ -145,17 +145,17 @@ class VCruiseHelper:
                                               ButtonType.gapAdjustCruiseDown):
       return
 
+    # If user is setting speed before activating ACC for the first time, we just set the initial value.
+    if not self.v_cruise_initialized:
+      self.initialize_v_cruise(CS, experimental_mode, is_metric, dynamic_experimental_control)
+      return
+
     cruise_standstill = self.button_change_states[button_type]["standstill"] or CS.cruiseState.standstill
     if button_type in self.resume_buttons and cruise_standstill:
       return
 
     # Don't adjust speed if we've enabled since the button was depressed (some ports enable on rising edge)
     if enabled and not self.button_change_states[button_type]["enabled"]:
-      return
-
-    # If user is setting speed before activating ACC for the first time, we just set the initial value.
-    if not self.v_cruise_initialized:
-      self.initialize_v_cruise(CS, experimental_mode, is_metric, dynamic_experimental_control)
       return
 
     if button_type in (ButtonType.decelCruise, ButtonType.accelCruise):
