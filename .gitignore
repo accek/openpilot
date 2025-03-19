@@ -112,3 +112,7 @@ Pipfile
 !.idea/customTargets.xml
 !.idea/tools/*
 !.run/*
+
+# Accek's work tree
+/realdata/
+/segments/

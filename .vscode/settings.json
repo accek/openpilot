@@ -11,7 +11,12 @@
   "files.exclude": {
     "**/.git": true,
     "**/.venv": true,
-    "**/__pycache__": true
+    "**/__pycache__": true,
+    "common/**/*.py": true,
+    "selfdrive/**/*.py": true,
+    "system/**/*.py": true,
+    "third_party/**/*.py": true,
+    "tools/**/*.py": true
   },
   "python.analysis.exclude": [
     "**/.git",
@@ -24,10 +29,18 @@
     "third_party/**",
     "tools/**",
   ],
+  "C_Cpp.default.defines": [
+    "SUNNYPILOT"
+  ],
   "files.associations": {
     "*.ejs": "html",
     "compare": "cpp",
-    "cstdint": "cpp"
+    "cstdint": "cpp",
+    "array": "cpp",
+    "string": "cpp",
+    "string_view": "cpp",
+    "span": "cpp",
+    "random": "cpp"
   },
   "editor.formatOnSave": false
 }
