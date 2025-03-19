@@ -23,5 +23,11 @@
     "system/**",
     "third_party/**",
     "tools/**",
-  ]
+  ],
+  "files.associations": {
+    "*.ejs": "html",
+    "compare": "cpp",
+    "cstdint": "cpp"
+  },
+  "editor.formatOnSave": false
 }
