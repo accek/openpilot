@@ -294,7 +294,8 @@ def main(exit_event: threading.Event = None) -> None:
           time.sleep(60)
         continue
 
-    success = uploader.step(sm['deviceState'].networkType.raw, sm['deviceState'].networkMetered)
+    success = uploader.step(sm['deviceState'].networkType.raw,
+                            sm['deviceState'].networkMetered and not params.get_bool("UploadOnMetered"))
     if success is None:
       backoff = 60 if offroad else 5
     elif success:

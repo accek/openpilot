@@ -179,7 +179,7 @@ AdvancedNetworking::AdvancedNetworking(QWidget* parent, WifiManager* wifi): QWid
   });
   list->addItem(editApnButton);
 
-  // Metered toggle
+  // Metered toggles
   const bool metered = params.getBool("GsmMetered");
   meteredToggle = new ToggleControl(tr("Cellular Metered"), tr("Prevent large data uploads when on a metered connection"), "", metered);
   QObject::connect(meteredToggle, &SshToggle::toggleFlipped, [=](bool state) {
@@ -187,6 +187,20 @@ AdvancedNetworking::AdvancedNetworking(QWidget* parent, WifiManager* wifi): QWid
     wifi->updateGsmSettings(params.getBool("GsmRoaming"), QString::fromStdString(params.get("GsmApn")), state);
   });
   list->addItem(meteredToggle);
+
+  const bool uploadOnMetered = params.getBool("UploadOnMetered");
+  uploadOnMeteredToggle = new ToggleControl(tr("Upload on Metered"), tr("Upload logs even if on a metered connection"), "", uploadOnMetered);
+  QObject::connect(uploadOnMeteredToggle, &SshToggle::toggleFlipped, [=](bool state) {
+    params.putBool("UploadOnMetered", state);
+  });
+  list->addItem(uploadOnMeteredToggle);
+
+  const bool updateOnMetered = params.getBool("UpdateOnMetered");
+  updateOnMeteredToggle = new ToggleControl(tr("Update on Metered"), tr("Update even if on a metered connection"), "", updateOnMetered);
+  QObject::connect(updateOnMeteredToggle, &SshToggle::toggleFlipped, [=](bool state) {
+    params.putBool("UpdateOnMetered", state);
+  });
+  list->addItem(updateOnMeteredToggle);
 
   // Hidden Network
   hiddenNetworkButton = new ButtonControl(tr("Hidden Network"), tr("CONNECT"));
@@ -218,6 +232,8 @@ void AdvancedNetworking::setGsmVisible(bool visible) {
   roamingToggle->setVisible(visible);
   editApnButton->setVisible(visible);
   meteredToggle->setVisible(visible);
+  uploadOnMeteredToggle->setVisible(visible);
+  updateOnMeteredToggle->setVisible(visible);
 }
 
 void AdvancedNetworking::refresh() {
