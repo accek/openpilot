@@ -20,7 +20,27 @@
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle_panel.h"
 
 TogglesPanelSP::TogglesPanelSP(SettingsWindowSP *parent) : TogglesPanel(parent) {
+  // param, title, desc, icon
+  std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
+    {
+      "RequirePresetAtBoot",
+      tr("Require Selecting Operating Preset at Boot"),
+      tr("If enabled, the device will display a profile selection dialog and will not activate until a selection is made."),
+      "../assets/offroad/icon_blank.png",
+    },
+  };
+
   QObject::connect(uiStateSP(), &UIStateSP::uiUpdate, this, &TogglesPanelSP::updateState);
+
+  for (auto &[param, title, desc, icon] : toggle_defs) {
+    auto toggle = new ParamControl(param, title, desc, icon, this);
+
+    bool locked = params.getBool((param + "Lock").toStdString());
+    toggle->setEnabled(!locked);
+
+    addItem(toggle);
+    toggles[param.toStdString()] = toggle;
+  }
 }
 
 void TogglesPanelSP::updateState(const UIStateSP &s) {

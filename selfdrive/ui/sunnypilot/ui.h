@@ -79,6 +79,10 @@ class DeviceSP : public Device {
 
 public:
   DeviceSP(QObject *parent = 0);
+
+protected:
+  void updateWakefulness(const UIStateSP &s);
+  void updateWakefulness(const UIState &s) override { updateWakefulness(dynamic_cast<const UIStateSP &>(s)); }
 };
 
 DeviceSP *deviceSP();

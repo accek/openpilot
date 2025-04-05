@@ -13,5 +13,14 @@ class OffroadHomeSP : public OffroadHome {
   Q_OBJECT
 
 public:
+  void addPresetsWidget();
+
   explicit OffroadHomeSP(QWidget *parent = 0);
+  void refresh() override;
+
+protected:
+  int computeCenterLayoutIndex() override;
+
+private:
+  QPushButton *presets_btn;
 };

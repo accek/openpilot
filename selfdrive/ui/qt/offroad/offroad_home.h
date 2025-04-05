@@ -38,18 +38,24 @@ public:
     void openSettings(int index = 0, const QString &param = "");
 
 protected:
+  Params params;
+
   QHBoxLayout *home_layout;
+  QStackedLayout* center_layout;
+  QVBoxLayout *right_column;
+
+  virtual int computeCenterLayoutIndex();
+  virtual void refresh();
 
 private:
   void showEvent(QShowEvent *event) override;
   void hideEvent(QHideEvent *event) override;
-  void refresh();
 
-  Params params;
+  bool update_available;
+  int alerts;
 
   QTimer* timer;
   ElidedLabel* version;
-  QStackedLayout* center_layout;
   UpdateAlert *update_widget;
   OffroadAlert* alerts_widget;
   QPushButton* alert_notif;

@@ -2,6 +2,7 @@ widgets_src = [
   "sunnypilot/qt/request_repeater.cc",
   "sunnypilot/qt/widgets/toggle.cc",
   "sunnypilot/qt/widgets/controls.cc",
+  "sunnypilot/qt/widgets/presets.cc",
   "sunnypilot/qt/widgets/drive_stats.cc",
   "sunnypilot/qt/widgets/prime.cc",
   "sunnypilot/qt/widgets/scrollview.cc",

@@ -43,6 +43,11 @@ DeviceSP::DeviceSP(QObject *parent) : Device(parent) {
   QObject::connect(uiStateSP(), &UIStateSP::uiUpdate, this, &DeviceSP::update);
 }
 
+void DeviceSP::updateWakefulness(const UIStateSP &s) {
+  Device::updateWakefulness(s);
+  setAwake((s.scene.ignition && s.scene.started) || interactive_timeout > 0);
+}
+
 UIStateSP *uiStateSP() {
   static UIStateSP ui_state;
   return &ui_state;

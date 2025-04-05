@@ -122,7 +122,7 @@ protected:
   QFuture<void> brightness_future;
 
   void updateBrightness(const UIState &s);
-  void updateWakefulness(const UIState &s);
+  virtual void updateWakefulness(const UIState &s);
   void setAwake(bool on);
 
 signals:
