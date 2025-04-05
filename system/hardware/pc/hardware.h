@@ -12,4 +12,11 @@ public:
   static bool PC() { return true; }
   static bool TICI() { return util::getenv("TICI", 0) == 1; }
   static bool AGNOS() { return util::getenv("TICI", 0) == 1; }
+
+  static void set_brightness(int percent) {
+    printf("Brightness: %d%%\n", percent);
+  }
+  static void set_display_power(bool on) {
+    printf("Display power: %s\n", on ? "on" : "off");
+  }
 };
