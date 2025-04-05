@@ -40,7 +40,10 @@
     "string": "cpp",
     "string_view": "cpp",
     "span": "cpp",
-    "random": "cpp"
+    "random": "cpp",
+    "bitset": "cpp",
+    "algorithm": "cpp",
+    "format": "cpp"
   },
   "editor.formatOnSave": false
 }
