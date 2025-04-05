@@ -6,7 +6,7 @@ import threading
 
 import cereal.messaging as messaging
 
-from cereal import car, log, custom
+from cereal import car, car_custom, log, custom
 
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
@@ -74,12 +74,13 @@ class Car:
   def __init__(self, CI=None, RI=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
     self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP'])
-    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP'])
+    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP'] + ['carStateAC'])
 
     self.can_rcv_cum_timeout_counter = 0
 
     self.CC_prev = car.CarControl.new_message()
     self.CS_prev = car.CarState.new_message()
+    self.CS_AC_prev = structs.CarStateAC.new_message()
     self.initialized_prev = False
 
     self.last_actuators_output = structs.CarControl.Actuators()
@@ -194,14 +195,14 @@ class Car:
     # log fingerprint in sentry
     sunnypilot_interfaces.log_fingerprint(self.CP)
 
-  def state_update(self) -> tuple[car.CarState, structs.RadarDataT | None]:
+  def state_update(self) -> tuple[car.CarState, car_custom.CarStateAC, structs.RadarDataT | None]:
     """carState update loop, driven by can"""
 
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
     can_list = can_capnp_to_list(can_strs)
 
     # Update carState from CAN
-    CS = self.CI.update(can_list)
+    CS, CS_AC = self.CI.update(can_list)
     if self.CP.brand == 'mock':
       CS = self.mock_carstate.update(CS)
 
@@ -228,9 +229,9 @@ class Car:
     CS.vCruise = float(self.v_cruise_helper.v_cruise_kph)
     CS.vCruiseCluster = float(self.v_cruise_helper.v_cruise_cluster_kph)
 
-    return CS, RD
+    return CS, CS_AC, RD
 
-  def state_publish(self, CS: car.CarState, RD: structs.RadarDataT | None):
+  def state_publish(self, CS: car.CarState, CS_AC: structs.CarStateAC, RD: structs.RadarDataT | None):
     """carState and carParams publish loop"""
 
     # carParams - logged every 50 seconds (> 1 per segment)
@@ -253,6 +254,11 @@ class Car:
     cs_send.carState.canErrorCounter = self.can_rcv_cum_timeout_counter
     cs_send.carState.cumLagMs = -self.rk.remaining * 1000.
     self.pm.send('carState', cs_send)
+
+    cs_ac_send = messaging.new_message('carStateAC')
+    cs_ac_send.valid = CS.canValid
+    cs_ac_send.carStateAC = CS_AC
+    self.pm.send('carStateAC', cs_ac_send)
 
     if RD is not None:
       tracks_msg = messaging.new_message('liveTracks')
@@ -287,9 +293,9 @@ class Car:
       self.CC_prev = CC
 
   def step(self):
-    CS, RD = self.state_update()
+    CS, CS_AC, RD = self.state_update()
 
-    self.state_publish(CS, RD)
+    self.state_publish(CS, CS_AC, RD)
 
     initialized = (not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents']) and
                    self.sm.seen['onroadEvents'])
@@ -298,6 +304,7 @@ class Car:
 
     self.initialized_prev = initialized
     self.CS_prev = CS
+    self.CS_AC_prev = CS_AC
 
   def params_thread(self, evt):
     while not evt.is_set():
@@ -324,8 +331,8 @@ class Car:
 
 def main():
   config_realtime_process(4, Priority.CTRL_HIGH)
-  car = Car()
-  car.card_thread()
+  car_instance = Car()
+  car_instance.card_thread()
 
 
 if __name__ == "__main__":

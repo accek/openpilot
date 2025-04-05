@@ -2,6 +2,7 @@ using Cxx = import "./include/c++.capnp";
 $Cxx.namespace("cereal");
 
 using Car = import "car.capnp";
+using CarCustom = import "car_custom.capnp";
 using Legacy = import "legacy.capnp";
 using Custom = import "custom.capnp";
 
@@ -2582,7 +2583,7 @@ struct Event {
     onroadEventsSP @110 :List(Custom.OnroadEventSP);
     carParamsSP @111 :Custom.CarParamsSP;
     carControlSP @112 :Custom.CarControlSP;
-    customReserved6 @113 :Custom.CustomReserved6;
+    carStateAC @113 :CarCustom.CarStateAC;
     customReserved7 @114 :Custom.CustomReserved7;
     customReserved8 @115 :Custom.CustomReserved8;
     customReserved9 @116 :Custom.CustomReserved9;

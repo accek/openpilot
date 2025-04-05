@@ -144,9 +144,6 @@ struct CarControlSP @0xa5cd762cd951a455 {
   mads @0 :ModularAssistiveDrivingSystem;
 }
 
-struct CustomReserved6 @0xf98d843bfd7004a3 {
-}
-
 struct CustomReserved7 @0xb86e6369214c01c8 {
 }
 

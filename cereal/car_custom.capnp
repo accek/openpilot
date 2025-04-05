@@ -1,0 +1,1 @@
+../opendbc_repo/opendbc/car/car_custom.capnp
