@@ -19,7 +19,34 @@
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/trips_panel.h"
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle_panel.h"
 
+OpLongMaxSpeed::OpLongMaxSpeed() : OptionControlSP(
+  "OpLongMaxSpeed",
+  "",
+  tr("Use stock ACC when set speed exceeds the given speed."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void OpLongMaxSpeed::refresh() {
+  QString option = QString::fromStdString(params.get("OpLongMaxSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Never"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
+}
+
 TogglesPanelSP::TogglesPanelSP(SettingsWindowSP *parent) : TogglesPanel(parent) {
+  op_long_max_speed = new OpLongMaxSpeed();
+  op_long_max_speed->showDescription();
+  connect(op_long_max_speed, &OptionControlSP::updateLabels, op_long_max_speed, &OpLongMaxSpeed::refresh);
+  addItem(op_long_max_speed);
+
   // param, title, desc, icon
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
     {
@@ -45,6 +72,26 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindowSP *parent) : TogglesPanel(parent) 
 
 void TogglesPanelSP::updateState(const UIStateSP &s) {
   TogglesPanel::updateState(s);
+}
+
+void TogglesPanelSP::updateToggles() {
+  TogglesPanel::updateToggles();
+
+  auto cp_bytes = params.get("CarParamsPersistent");
+  auto cp_ac_bytes = params.get("CarParamsACPersistent");
+  if (!cp_bytes.empty() && !cp_ac_bytes.empty()) {
+    AlignedBuffer aligned_buf;
+    capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
+    cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
+    AlignedBuffer aligned_buf_ac;
+    capnp::FlatArrayMessageReader cmsg_ac(aligned_buf_ac.align(cp_ac_bytes.data(), cp_ac_bytes.size()));
+    cereal::CarParamsAC::Reader CP_AC = cmsg_ac.getRoot<cereal::CarParamsAC>();
+
+    op_long_max_speed->setVisible(CP_AC.getStockAccOverrideAvailable());
+    op_long_max_speed->setEnabled(hasLongitudinalControl(CP));
+  } else {
+    op_long_max_speed->setVisible(false);
+  }
 }
 
 SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {

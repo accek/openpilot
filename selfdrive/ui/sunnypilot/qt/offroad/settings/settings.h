@@ -12,6 +12,21 @@
 
 #include "selfdrive/ui/qt/offroad/settings.h"
 
+class OpLongMaxSpeed : public OptionControlSP {
+  Q_OBJECT
+
+public:
+  OpLongMaxSpeed();
+
+  void refresh();
+
+signals:
+  void ToggleUpdated();
+
+private:
+  Params params;
+};
+
 class SettingsWindowSP : public SettingsWindow {
   Q_OBJECT
 
@@ -33,6 +48,12 @@ class TogglesPanelSP : public TogglesPanel {
 
 public:
   explicit TogglesPanelSP(SettingsWindowSP *parent);
+
+protected:
+  virtual void updateToggles() override;
+
+private:
+  OpLongMaxSpeed *op_long_max_speed;
 
 private slots:
   void updateState(const UIStateSP &s);
