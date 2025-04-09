@@ -69,12 +69,13 @@ class Car:
   RI: RadarInterfaceBase
   CP: car.CarParams
   CP_SP: structs.CarParamsSP
+  CP_AC: structs.CarParamsAC
   CP_SP_capnp: custom.CarParamsSP
 
   def __init__(self, CI=None, RI=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
-    self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP'])
-    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP'] + ['carStateAC'])
+    self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP'] + ['carControlAC'])
+    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP'] + ['carParamsAC', 'carStateAC'])
 
     self.can_rcv_cum_timeout_counter = 0
 
@@ -113,11 +114,12 @@ class Car:
       self.RI = interfaces[self.CI.CP.carFingerprint].RadarInterface(self.CI.CP, self.CI.CP_SP)
       self.CP = self.CI.CP
       self.CP_SP = self.CI.CP_SP
+      self.CP_AC = self.CI.CP_AC
 
       # continue onto next fingerprinting step in pandad
       self.params.put_bool("FirmwareQueryDone", True)
     else:
-      self.CI, self.CP, self.CP_SP = CI, CI.CP, CI.CP_SP
+      self.CI, self.CP, self.CP_SP, self.CP_AC = CI, CI.CP, CI.CP_SP, CI.CP_AC
       self.RI = RI
 
     # set alternative experiences from parameters
@@ -182,6 +184,12 @@ class Car:
     self.params.put("CarParamsSP", cp_sp_bytes)
     self.params.put_nonblocking("CarParamsSPCache", cp_sp_bytes)
     self.params.put_nonblocking("CarParamsSPPersistent", cp_sp_bytes)
+
+    # Write CarParams for controls and ui
+    cp_ac_bytes = self.CP_AC.to_bytes()
+    self.params.put("CarParamsAC", cp_ac_bytes)
+    self.params.put_nonblocking("CarParamsACCache", cp_ac_bytes)
+    self.params.put_nonblocking("CarParamsACPersistent", cp_ac_bytes)
 
     self.mock_carstate = MockCarState()
     self.v_cruise_helper = VCruiseHelper(self.CP)
@@ -273,13 +281,13 @@ class Car:
       cp_sp_send.carParamsSP = self.CP_SP_capnp
       self.pm.send('carParamsSP', cp_sp_send)
 
-  def controls_update(self, CS: car.CarState, CC: car.CarControl, CC_SP: custom.CarControlSP):
+  def controls_update(self, CS: car.CarState, CC: car.CarControl, CC_SP: custom.CarControlSP, CC_AC: structs.CarControlAC):
     """control update loop, driven by carControl"""
 
     if not self.initialized_prev:
       # Initialize CarInterface, once controls are ready
       # TODO: this can make us miss at least a few cycles when doing an ECU knockout
-      self.CI.init(self.CP, self.CP_SP, *self.can_callbacks)
+      self.CI.init(self.CP, self.CP_SP, self.CP_AC, *self.can_callbacks)
       sunnypilot_interfaces.initialize_car_interface_sp(self.CP, self.CP_SP, self.params, *self.can_callbacks)
       # signal pandad to switch to car safety mode
       self.params.put_bool_nonblocking("ControlsReady", True)

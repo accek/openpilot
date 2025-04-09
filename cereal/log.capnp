@@ -2584,8 +2584,8 @@ struct Event {
     carParamsSP @111 :Custom.CarParamsSP;
     carControlSP @112 :Custom.CarControlSP;
     carStateAC @113 :CarCustom.CarStateAC;
-    customReserved7 @114 :Custom.CustomReserved7;
-    customReserved8 @115 :Custom.CustomReserved8;
+    carParamsAC @114 :CarCustom.CarParamsAC;
+    carControlAC @115 :CarCustom.CarControlAC;
     customReserved9 @116 :Custom.CustomReserved9;
     customReserved10 @136 :Custom.CustomReserved10;
     customReserved11 @137 :Custom.CustomReserved11;

@@ -159,6 +159,9 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"DynamicExperimentalControl", PERSISTENT},
 
     // --- acspilot params --- //
+    {"CarParamsAC", CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION},
+    {"CarParamsACCache", CLEAR_ON_MANAGER_START},
+    {"CarParamsACPersistent", PERSISTENT},
     {"UpdateOnMetered", PERSISTENT | BACKUP},
     {"UploadOnMetered", PERSISTENT | BACKUP},
     {"PresetSelected", CLEAR_ON_MANAGER_START},
