@@ -5,7 +5,7 @@ import threading
 
 import cereal.messaging as messaging
 
-from cereal import car, log, custom
+from cereal import car, car_custom, log, custom
 from msgq.visionipc import VisionIpcClient, VisionStreamType
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
 
@@ -47,7 +47,7 @@ IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
 
 
 class SelfdriveD(CruiseHelper):
-  def __init__(self, CP=None, CP_SP=None):
+  def __init__(self, CP=None, CP_SP=None, CP_AC=None):
     self.params = Params()
 
     # Ensure the current branch is cached, otherwise the first cycle lags
@@ -66,6 +66,13 @@ class SelfdriveD(CruiseHelper):
       cloudlog.info("selfdrived got CarParamsSP")
     else:
       self.CP_SP = CP_SP
+
+    if CP_AC is None:
+      cloudlog.info("selfdrived is waiting for CarParamsAC")
+      self.CP_AC = messaging.log_from_bytes(self.params.get("CarParamsAC", block=True), car_custom.CarParamsAC)
+      cloudlog.info("selfdrived got CarParamsAC")
+    else:
+      self.CP_AC = CP_AC
 
     self.car_events = CarSpecificEvents(self.CP)
     self.disengage_on_accelerator = not (self.CP.alternativeExperience & ALTERNATIVE_EXPERIENCE.DISABLE_DISENGAGE_ON_GAS)
@@ -182,9 +189,11 @@ class SelfdriveD(CruiseHelper):
       return
 
     # Block resume if cruise never previously enabled
-    resume_pressed = any(be.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for be in CS.buttonEvents)
-    if not self.CP.pcmCruise and CS.vCruise > 250 and resume_pressed:
-      self.events.add(EventName.resumeBlocked)
+    if not self.CP_AC.resumeButtonSetsDefaultVCruise:
+      resume_buttons = self.v_cruise_helper.resume_buttons
+      resume_pressed = any(be.type in resume_buttons for be in CS.buttonEvents)
+      if not self.CP.pcmCruise and not self.v_cruise_helper.v_cruise_initialized and resume_pressed:
+        self.events.add(EventName.resumeBlocked)
 
     if not self.CP.notCar:
       self.events.add_from_msg(self.sm['driverMonitoringState'].events)

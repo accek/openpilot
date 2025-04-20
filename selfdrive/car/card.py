@@ -192,7 +192,7 @@ class Car:
     self.params.put_nonblocking("CarParamsACPersistent", cp_ac_bytes)
 
     self.mock_carstate = MockCarState()
-    self.v_cruise_helper = VCruiseHelper(self.CP)
+    self.v_cruise_helper = VCruiseHelper(self.CP, self.CP_AC)
 
     self.is_metric = self.params.get_bool("IsMetric")
     self.experimental_mode = self.params.get_bool("ExperimentalMode")
@@ -228,7 +228,7 @@ class Car:
     if can_rcv_valid and REPLAY:
       self.can_log_mono_time = messaging.log_from_bytes(can_strs[0]).logMonoTime
 
-    self.v_cruise_helper.update_v_cruise(CS, self.sm['carControl'].enabled, self.is_metric)
+    self.v_cruise_helper.update_v_cruise(CS, self.sm['carControl'].enabled, self.is_metric, self.experimental_mode, self.dynamic_experimental_control)
     if self.sm['carControl'].enabled and not self.CC_prev.enabled:
       # Use CarState w/ buttons from the step selfdrived enables on
       self.v_cruise_helper.initialize_v_cruise(self.CS_prev, self.experimental_mode, self.dynamic_experimental_control)
