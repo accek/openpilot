@@ -18,7 +18,7 @@ def main():
 
   ldw = LaneDepartureWarning()
   longitudinal_planner = LongitudinalPlanner(CP)
-  pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'longitudinalPlanSP'])
+  pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'driverAssistanceAC', 'longitudinalPlanSP'])
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState'],
                            poll='modelV2')
 
@@ -29,11 +29,19 @@ def main():
       longitudinal_planner.publish(sm, pm)
 
       ldw.update(sm.frame, sm['modelV2'], sm['carState'], sm['carControl'])
+      valid = sm.all_checks(['carState', 'carControl', 'modelV2', 'liveParameters'])
+
       msg = messaging.new_message('driverAssistance')
-      msg.valid = sm.all_checks(['carState', 'carControl', 'modelV2', 'liveParameters'])
+      msg.valid = valid
       msg.driverAssistance.leftLaneDeparture = ldw.left
       msg.driverAssistance.rightLaneDeparture = ldw.right
       pm.send('driverAssistance', msg)
+
+      msg_ac = messaging.new_message('driverAssistanceAC')
+      msg_ac.valid = valid
+      msg_ac.driverAssistanceAC.leftLaneVisible = ldw.left_lane_visible
+      msg_ac.driverAssistanceAC.rightLaneVisible = ldw.right_lane_visible
+      pm.send('driverAssistanceAC', msg_ac)
 
 
 if __name__ == "__main__":

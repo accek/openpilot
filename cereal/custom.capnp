@@ -144,7 +144,9 @@ struct CarControlSP @0xa5cd762cd951a455 {
   mads @0 :ModularAssistiveDrivingSystem;
 }
 
-struct CustomReserved9 @0xa1680744031fdb2d {
+struct DriverAssistanceAC @0xa1680744031fdb2d {
+  leftLaneVisible @0 :Bool = true;
+  rightLaneVisible @1 :Bool = true;
 }
 
 struct CustomReserved10 @0xcb9fd56c7057593a {

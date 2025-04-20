@@ -83,6 +83,7 @@ _services: dict[str, tuple] = {
   "carControlSP": (True, 100., 10),
 
   # ACSPilot
+  "driverAssistanceAC": (True, 20., 20),
   "carParamsAC": (True, 0.02, 1),
   "carStateAC": (True, 100., 10),
   "carControlAC": (True, 100., 10),

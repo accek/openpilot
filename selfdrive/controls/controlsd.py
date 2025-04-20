@@ -41,7 +41,8 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance'] + ['selfdriveStateSP'],
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance'] + ['selfdriveStateSP']
+                                   + ['driverAssistanceAC'],
                                   poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'] + ['carControlSP'])
 
@@ -167,8 +168,12 @@ class Controls:
     hudControl.leadDistanceBars = self.sm['selfdriveState'].personality.raw + 1
     hudControl.visualAlert = self.sm['selfdriveState'].alertHudVisual
 
-    hudControl.rightLaneVisible = True
-    hudControl.leftLaneVisible = True
+    if self.sm.valid['driverAssistanceAC']:
+      hudControl.leftLaneVisible = self.sm['driverAssistanceAC'].leftLaneVisible
+      hudControl.rightLaneVisible = self.sm['driverAssistanceAC'].rightLaneVisisble
+    else:
+      hudControl.leftLaneVisible = True
+      hudControl.rightLaneVisible = True
     if self.sm.valid['driverAssistance']:
       hudControl.leftLaneDepart = self.sm['driverAssistance'].leftLaneDeparture
       hudControl.rightLaneDepart = self.sm['driverAssistance'].rightLaneDeparture

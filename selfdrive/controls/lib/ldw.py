@@ -9,6 +9,8 @@ LANE_DEPARTURE_THRESHOLD = 0.1
 
 class LaneDepartureWarning:
   def __init__(self):
+    self.left_lane_visible = False
+    self.right_lane_visible = False
     self.left = False
     self.right = False
     self.last_blinker_frame = 0
@@ -21,15 +23,19 @@ class LaneDepartureWarning:
     ldw_allowed = CS.vEgo > LDW_MIN_SPEED and not recent_blinker and not CC.latActive
 
     desire_prediction = modelV2.meta.desirePrediction
+    if len(desire_prediction):
+      self.right_lane_visible = modelV2.laneLineProbs[2] > 0.5
+      self.left_lane_visible = modelV2.laneLineProbs[1] > 0.5
+    else:
+      self.left_lane_visible, self.right_lane_visible = False, False
+
     if len(desire_prediction) and ldw_allowed:
-      right_lane_visible = modelV2.laneLineProbs[2] > 0.5
-      left_lane_visible = modelV2.laneLineProbs[1] > 0.5
       l_lane_change_prob = desire_prediction[log.Desire.laneChangeLeft]
       r_lane_change_prob = desire_prediction[log.Desire.laneChangeRight]
 
       lane_lines = modelV2.laneLines
-      l_lane_close = left_lane_visible and (lane_lines[1].y[0] > -(1.08 + CAMERA_OFFSET))
-      r_lane_close = right_lane_visible and (lane_lines[2].y[0] < (1.08 - CAMERA_OFFSET))
+      l_lane_close = self.left_lane_visible and (lane_lines[1].y[0] > -(1.08 + CAMERA_OFFSET))
+      r_lane_close = self.right_lane_visible and (lane_lines[2].y[0] < (1.08 - CAMERA_OFFSET))
 
       self.left = bool(l_lane_change_prob > LANE_DEPARTURE_THRESHOLD and l_lane_close)
       self.right = bool(r_lane_change_prob > LANE_DEPARTURE_THRESHOLD and r_lane_close)
