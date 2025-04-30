@@ -42,9 +42,9 @@ class Controls:
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
                                    'driverMonitoringState', 'onroadEvents', 'driverAssistance'] + ['selfdriveStateSP']
-                                   + ['driverAssistanceAC'],
+                                   + ['onroadEventsAC', 'driverAssistanceAC'],
                                   poll='selfdriveState')
-    self.pm = messaging.PubMaster(['carControl', 'controlsState'] + ['carControlSP'])
+    self.pm = messaging.PubMaster(['carControl', 'controlsState'] + ['carControlSP'] + ['carControlAC', 'controlsStateAC'])
 
     self.steer_limited_by_controls = False
     self.desired_curvature = 0.0
@@ -102,7 +102,10 @@ class Controls:
       _lat_active = self.sm['selfdriveState'].active
 
     CC.latActive = _lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and not standstill
-    CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
+    CC.longActive = CC.enabled and \
+      not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and \
+      not any(e.overrideLongitudinal for e in self.sm['onroadEventsAC']) and \
+      self.CP.openpilotLongitudinalControl
 
     actuators = CC.actuators
     actuators.longControlState = self.LoC.long_control_state
@@ -124,9 +127,9 @@ class Controls:
     # Steering PID loop and lateral MPC
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature, lp.roll)
     actuators.curvature = self.desired_curvature
-    steer, steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
-                                                       self.steer_limited_by_controls, self.desired_curvature,
-                                                       self.calibrated_pose, curvature_limited)  # TODO what if not available
+    steer, steeringAngleDeg, lac_log, lac_log_ac = self.LaC.update(CC.latActive, CS, self.VM, lp,
+                                                                   self.steer_limited_by_controls, self.desired_curvature,
+                                                                   self.calibrated_pose, curvature_limited, model_data=model_v2)  # TODO what if not available
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
     # Ensure no NaNs/Infs
@@ -142,9 +145,12 @@ class Controls:
     CC_SP = custom.CarControlSP.new_message()
     CC_SP.mads = ss_sp.mads
 
-    return CC, CC_SP, lac_log
+    CC_AC = custom.CarControlAC.new_message()
+    # TODO: fill CC_AC
 
-  def publish(self, CC, CC_SP, lac_log):
+    return CC, CC_SP, CC_AC, lac_log, lac_log_ac
+
+  def publish(self, CC, CC_SP, CC_AC, lac_log, lac_log_ac):
     CS = self.sm['carState']
 
     # Orientation and angle rates can be useful for carcontroller
@@ -218,6 +224,13 @@ class Controls:
 
     self.pm.send('controlsState', dat)
 
+    # controlsStateAC
+    dat_ac = messaging.new_message('controlsStateAC')
+    dat_ac.valid = CS.canValid
+    cs_ac = dat_ac.controlsStateAC
+    cs_ac.lateralControlState = lac_log_ac
+    self.pm.send('controlsStateAC', dat_ac)
+
     # carControl
     cc_send = messaging.new_message('carControl')
     cc_send.valid = CS.canValid
@@ -230,12 +243,18 @@ class Controls:
     cc_sp_send.carControlSP = CC_SP
     self.pm.send('carControlSP', cc_sp_send)
 
+    # carControlAC
+    cc_ac_send = messaging.new_message('carControlAC')
+    cc_ac_send.valid = CS.canValid
+    cc_ac_send.carControlAC = CC_AC
+    self.pm.send('carControlAC', cc_ac_send)
+
   def run(self):
     rk = Ratekeeper(100, print_delay_threshold=None)
     while True:
       self.update()
-      CC, CC_SP, lac_log = self.state_control()
-      self.publish(CC, CC_SP, lac_log)
+      CC, CC_SP, CC_AC, lac_log, lac_log_ac = self.state_control()
+      self.publish(CC, CC_SP, CC_AC, lac_log, lac_log_ac)
       rk.monitor_time()
 
 

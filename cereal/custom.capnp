@@ -149,10 +149,33 @@ struct DriverAssistanceAC @0xa1680744031fdb2d {
   rightLaneVisible @1 :Bool = true;
 }
 
-struct CustomReserved10 @0xcb9fd56c7057593a {
+struct OnroadEventAC @0xcb9fd56c7057593a {
+  name @0 :EventName;
+
+  # event types
+  enable @1 :Bool;
+  noEntry @2 :Bool;
+  warning @3 :Bool;   # alerts presented only when  enabled or soft disabling
+  userDisable @4 :Bool;
+  softDisable @5 :Bool;
+  immediateDisable @6 :Bool;
+  preEnable @7 :Bool;
+  permanent @8 :Bool; # alerts presented regardless of openpilot state
+  overrideLateral @10 :Bool;
+  overrideLongitudinal @9 :Bool;
+
+  enum EventName {
+    steerSaturating @0;
+    stockAccOverride @1;
+  }
 }
 
-struct CustomReserved11 @0xc2243c65e0340384 {
+struct ControlsStateAC @0xc2243c65e0340384 {
+  lateralControlState @0 :LateralControlState;
+
+  struct LateratControlState {
+    saturating @0 :Bool;
+  }
 }
 
 struct CustomReserved12 @0x9ccdc8676701b412 {

@@ -1,6 +1,6 @@
 import math
 
-from cereal import log
+from cereal import log, custom
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.common.pid import PIDController
 
@@ -17,10 +17,11 @@ class LatControlPID(LatControl):
     super().reset()
     self.pid.reset()
 
-  def update(self, active, CS, VM, params, steer_limited_by_controls, desired_curvature, calibrated_pose, curvature_limited):
+  def update(self, active, CS, VM, params, steer_limited_by_controls, desired_curvature, calibrated_pose, curvature_limited, model_data=None):
     pid_log = log.ControlsState.LateralPIDState.new_message()
     pid_log.steeringAngleDeg = float(CS.steeringAngleDeg)
     pid_log.steeringRateDeg = float(CS.steeringRateDeg)
+    pid_log_ac = custom.ControlsStateAC.LateralPIDState.new_message()
 
     angle_steers_des_no_offset = math.degrees(VM.get_steer_from_curvature(-desired_curvature, CS.vEgo, params.roll))
     angle_steers_des = angle_steers_des_no_offset + params.angleOffsetDeg
@@ -43,6 +44,7 @@ class LatControlPID(LatControl):
       pid_log.i = float(self.pid.i)
       pid_log.f = float(self.pid.f)
       pid_log.output = float(output_steer)
-      pid_log.saturated = bool(self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited_by_controls, curvature_limited))
+      pid_log.saturated = self._check_saturated(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited_by_controls, curvature_limited)
+      pid_log_ac.saturating = self._check_saturating(self.steer_max * 0.8 < abs(output_steer), CS)
 
-    return output_steer, angle_steers_des, pid_log
+    return output_steer, angle_steers_des, pid_log, pid_log_ac
