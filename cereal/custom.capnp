@@ -167,6 +167,7 @@ struct OnroadEventAC @0xcb9fd56c7057593a {
   enum EventName {
     steerSaturating @0;
     stockAccOverride @1;
+    accFaultedTemporary @2;
   }
 }
 

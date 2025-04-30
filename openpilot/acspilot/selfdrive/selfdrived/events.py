@@ -1,6 +1,8 @@
 from cereal import log, car, custom
+import cereal.messaging as messaging
+from openpilot.common.realtime import DT_CTRL
 from openpilot.acspilot.selfdrive.selfdrived.events_base import EventsBase, Priority, ET, Alert, \
-  NoEntryAlert, ImmediateDisableAlert, EngagementAlert, NormalPermanentAlert, AlertCallbackType
+  NoEntryAlert, ImmediateDisableAlert, SoftDisableAlert, AlertCallbackType
 
 
 AlertSize = log.SelfdriveState.AlertSize
@@ -29,6 +31,14 @@ class EventsAC(EventsBase):
     return custom.OnroadEventAC
 
 
+def soft_disable_alert(alert_text_2: str) -> AlertCallbackType:
+  def func(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
+    if soft_disable_time < int(0.5 / DT_CTRL):
+      return ImmediateDisableAlert(alert_text_2)
+    return SoftDisableAlert(alert_text_2)
+  return func
+
+
 EVENTS_AC: dict[int, dict[str, Alert | AlertCallbackType]] = {
   # ACSPilot
 
@@ -46,5 +56,10 @@ EVENTS_AC: dict[int, dict[str, Alert | AlertCallbackType]] = {
       "",
       AlertStatus.normal, AlertSize.none,
       Priority.LOWEST, VisualAlert.none, AudibleAlert.none, .1),
+  },
+
+  EventNameAC.accFaultedTemporary: {
+    ET.SOFT_DISABLE: soft_disable_alert("Cruise Fault"),
+    ET.NO_ENTRY: NoEntryAlert("Cruise Fault"),
   },
 }
