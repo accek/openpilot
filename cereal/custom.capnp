@@ -173,7 +173,7 @@ struct OnroadEventAC @0xcb9fd56c7057593a {
 struct ControlsStateAC @0xc2243c65e0340384 {
   lateralControlState @0 :LateralControlState;
 
-  struct LateratControlState {
+  struct LateralControlState {
     saturating @0 :Bool;
   }
 }
