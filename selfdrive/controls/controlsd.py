@@ -2,7 +2,7 @@
 import math
 from typing import SupportsFloat
 
-from cereal import car, log, custom
+from cereal import car, log, custom, car_custom
 import cereal.messaging as messaging
 from openpilot.common.conversions import Conversions as CV
 from openpilot.common.params import Params
@@ -38,7 +38,11 @@ class Controls:
     self.CP_SP = messaging.log_from_bytes(self.params.get("CarParamsSP", block=True), custom.CarParamsSP)
     cloudlog.info("controlsd got CarParamsSP")
 
-    self.CI = interfaces[self.CP.carFingerprint](self.CP, self.CP_SP)
+    cloudlog.info("controlsd is waiting for CarParamsAC")
+    self.CP_AC = messaging.log_from_bytes(self.params.get("CarParamsAC", block=True), car_custom.CarParamsAC)
+    cloudlog.info("controlsd got CarParamsAC")
+
+    self.CI = interfaces[self.CP.carFingerprint](self.CP, self.CP_SP, self.CP_AC)
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
