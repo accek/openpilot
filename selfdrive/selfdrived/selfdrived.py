@@ -44,6 +44,7 @@ LaneChangeDirection = log.LaneChangeDirection
 EventName = log.OnroadEvent.EventName
 EventNameAC = custom.OnroadEventAC.EventName
 ButtonType = car.CarState.ButtonEvent.Type
+ButtonTypeAC = car_custom.CarStateAC.ButtonEvent.Type
 SafetyModel = car.CarParams.SafetyModel
 
 IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
@@ -166,7 +167,7 @@ class SelfdriveD(CruiseHelper):
 
     self.car_events_sp = CarSpecificEventsSP(self.CP, self.params)
 
-    CruiseHelper.__init__(self, self.CP)
+    CruiseHelper.__init__(self, self.CP, self.CP_AC)
 
   def update_events(self, CS, CS_AC=None):
     """Compute onroadEvents from carState"""
@@ -416,16 +417,24 @@ class SelfdriveD(CruiseHelper):
     if CS.gearShifter == car.CarState.GearShifter.park and self.mads.enabled:
       self.events.remove(EventName.canBusMissing)
 
-    CruiseHelper.update(self, CS, self.events_sp, self.experimental_mode)
+    CruiseHelper.update(self, CS, CS_AC, self.events_sp, self.experimental_mode)
 
     # decrement personality on distance button press
     if self.CP.openpilotLongitudinalControl:
-      if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
+      personality_delta = 0
+      if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents) or \
+          any(not be.pressed and be.type == ButtonTypeAC.gapAdjustCruiseDown for be in CS_AC.buttonEvents):
         if not self.experimental_mode_switched:
-          self.personality = (self.personality - 1) % 3
-          self.params.put_nonblocking('LongitudinalPersonality', str(self.personality))
-          self.events.add(EventName.personalityChanged)
+          personality_delta = -1
         self.experimental_mode_switched = False
+      if any(not be.pressed and be.type == ButtonTypeAC.gapAdjustCruiseUp for be in CS_AC.buttonEvents):
+        if not self.experimental_mode_switched:
+          personality_delta = 1
+        self.experimental_mode_switched = False
+      if personality_delta != 0:
+        self.personality = (self.personality - personality_delta) % 3
+        self.params.put_nonblocking('LongitudinalPersonality', str(self.personality))
+        self.events.add(EventName.personalityChanged)
 
   def data_sample(self):
     car_state_ac = messaging.recv_one(self.car_state_sock_ac)
