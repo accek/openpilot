@@ -12,11 +12,11 @@
 
 #include "selfdrive/ui/qt/offroad/settings.h"
 
-class OpLongMaxSpeed : public OptionControlSP {
+class StockAccOverrideSpeed : public OptionControlSP {
   Q_OBJECT
 
 public:
-  OpLongMaxSpeed();
+  StockAccOverrideSpeed();
 
   void refresh();
 
@@ -53,7 +53,7 @@ protected:
   virtual void updateToggles() override;
 
 private:
-  OpLongMaxSpeed *op_long_max_speed;
+  StockAccOverrideSpeed *stock_acc_override_speed;
 
 private slots:
   void updateState(const UIStateSP &s);

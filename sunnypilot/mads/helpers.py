@@ -5,7 +5,10 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
+from typing import Optional
+
 from openpilot.common.params import Params
+from openpilot.common.conversions import Conversions as CV
 
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from opendbc.sunnypilot.car.hyundai.values import HyundaiFlagsSP, HyundaiSafetyFlagsSP
@@ -17,6 +20,15 @@ class MadsParams:
 
   def read_param(self, key: str):
     return self.params.get_bool(key)
+
+  def read_speed_param(self, enable_key: str, speed_key: str, default: float, is_metric: bool = True) -> Optional[float]:
+    enable = self.read_param(enable_key)
+    if not enable:
+      return None
+    speed = float(self.params.get(speed_key) or 0)
+    if speed > 0.0:
+      return speed * (CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS)
+    return default
 
   def set_alternative_experience(self, CP):
     enabled = self.read_param("Mads")

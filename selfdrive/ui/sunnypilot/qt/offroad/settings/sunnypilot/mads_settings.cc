@@ -51,6 +51,40 @@ MadsSettings::MadsSettings(QWidget *parent) : QWidget(parent) {
     500);
   list->addItem(madsPauseLateralOnBrake);
 
+  // Speed-based pause and resume
+  madsPauseSpeedWithBlinkerToggle = new ParamControl(
+    "MadsPauseSpeedWithBlinkerEnabled",
+    tr("Pause Steering at Low Speed with Blinker"),
+    tr("Pause lateral steering when blinker is active at low speed."),
+    "");
+  list->addItem(madsPauseSpeedWithBlinkerToggle);
+  madsPauseSpeedWithBlinker = new PauseLateralSpeedWithBlinker();
+  madsPauseSpeedWithBlinker->showDescription();
+  connect(madsPauseSpeedWithBlinker, &OptionControlSP::updateLabels, madsPauseSpeedWithBlinker, &PauseLateralSpeedWithBlinker::refresh);
+  list->addItem(madsPauseSpeedWithBlinker);
+
+  madsPauseSpeedToggle = new ParamControl(
+    "MadsPauseSpeedEnabled",
+    tr("Pause Steering at Low Speed"),
+    tr("Pause lateral steering when speed is below a certain threshold."),
+    "");
+  list->addItem(madsPauseSpeedToggle);
+  madsPauseSpeed = new PauseLateralSpeed();
+  madsPauseSpeed->showDescription();
+  connect(madsPauseSpeed, &OptionControlSP::updateLabels, madsPauseSpeed, &PauseLateralSpeed::refresh);
+  list->addItem(madsPauseSpeed);
+
+  madsResumeSpeedToggle = new ParamControl(
+    "MadsResumeSpeedEnabled",
+    tr("Resume Steering at High Speed"),
+    tr("Resume lateral steering when speed is above a certain threshold."),
+    "");
+  list->addItem(madsResumeSpeedToggle);
+  madsResumeSpeed = new ResumeLateralSpeed();
+  madsResumeSpeed->showDescription();
+  connect(madsResumeSpeed, &OptionControlSP::updateLabels, madsResumeSpeed, &ResumeLateralSpeed::refresh);
+  list->addItem(madsResumeSpeed);
+
   QObject::connect(uiState(), &UIState::offroadTransition, this, &MadsSettings::updateToggles);
 
   main_layout->addWidget(new ScrollViewSP(list, this));
@@ -62,6 +96,76 @@ void MadsSettings::showEvent(QShowEvent *event) {
 
 void MadsSettings::updateToggles(bool _offroad) {
   madsPauseLateralOnBrake->setEnabled(_offroad);
+  madsPauseSpeedWithBlinkerToggle->setEnabled(_offroad);
+  madsPauseSpeedToggle->setEnabled(_offroad);
+  madsResumeSpeedToggle->setEnabled(_offroad);
 
   offroad = _offroad;
+}
+
+
+PauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
+  "MadsPauseSpeed",
+  "",
+  tr("Pause lateral actuation when traveling below the desired speed selected and driver steers. Default is 10 MPH or 16 km/h."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void PauseLateralSpeed::refresh() {
+  QString option = QString:: fromStdString(params.get("MadsPauseSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Default"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
+}
+
+PauseLateralSpeedWithBlinker::PauseLateralSpeedWithBlinker() : OptionControlSP(
+  "MadsPauseSpeedWithBlinker",
+  "",
+  tr("Pause lateral actuation when traveling below the desired speed selected and the blinker is active. Default is 20 MPH or 32 km/h."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void PauseLateralSpeedWithBlinker::refresh() {
+  QString option = QString:: fromStdString(params.get("MadsPauseSpeedWithBlinker"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Default"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
+}
+
+ResumeLateralSpeed::ResumeLateralSpeed() : OptionControlSP(
+  "MadsResumeSpeed",
+  "",
+  tr("Resume lateral actuation when traveling above the desired speed selected. Default is 40 MPH or 64 km/h."),
+  "../assets/offroad/icon_blank.png",
+  {0, 255},
+  5) {
+
+  refresh();
+}
+
+void ResumeLateralSpeed::refresh() {
+  QString option = QString:: fromStdString(params.get("MadsResumeSpeed"));
+  bool is_metric = params.getBool("IsMetric");
+
+  if (option == "0") {
+    setLabel(tr("Default"));
+  } else {
+    setLabel(option + " " + (is_metric ? tr("km/h") : tr("mph")));
+  }
 }

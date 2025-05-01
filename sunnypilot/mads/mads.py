@@ -5,12 +5,15 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
+from enum import Flag, auto
+
 from cereal import car, log, custom
 
 from opendbc.car.hyundai.values import HyundaiFlags
 
+from openpilot.common.conversions import Conversions as CV
 from openpilot.sunnypilot.mads.helpers import MadsParams
-from openpilot.sunnypilot.mads.state import StateMachine, GEARS_ALLOW_PAUSED_SILENT
+from openpilot.sunnypilot.mads.state import StateMachine
 
 State = custom.ModularAssistiveDrivingSystem.ModularAssistiveDrivingSystemState
 ButtonType = car.CarState.ButtonEvent.Type
@@ -21,6 +24,14 @@ SafetyModel = car.CarParams.SafetyModel
 SET_SPEED_BUTTONS = (ButtonType.accelCruise, ButtonType.resumeCruise, ButtonType.decelCruise, ButtonType.setCruise)
 IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
 
+DEFAULT_MADS_PAUSE_SPEED_WITH_BLINKER = 20 * CV.MPH_TO_MS
+DEFAULT_MADS_PAUSE_SPEED = 10 * CV.MPH_TO_MS
+DEFAULT_MADS_RESUME_SPEED = 40 * CV.MPH_TO_MS
+
+class PauseReason(Flag):
+  PRECONDITION_FAILED = auto()
+  BRAKE = auto()
+  SPEED = auto()
 
 class ModularAssistiveDrivingSystem:
   def __init__(self, selfdrive):
@@ -35,6 +46,8 @@ class ModularAssistiveDrivingSystem:
     self.state_machine = StateMachine(self)
     self.events = self.selfdrive.events
     self.events_sp = self.selfdrive.events_sp
+    self.pause_reason = PauseReason(0)
+    self.first_blinker_frame = 0
 
     if self.selfdrive.CP.brand == "hyundai":
       if self.selfdrive.CP.flags & (HyundaiFlags.HAS_LDA_BUTTON | HyundaiFlags.CANFD):
@@ -42,13 +55,16 @@ class ModularAssistiveDrivingSystem:
 
     # read params on init
     self.enabled_toggle = self.mads_params.read_param("Mads")
-    self.main_enabled_toggle = self.mads_params.read_param("MadsMainCruiseAllowed")
-    self.pause_lateral_on_brake_toggle = self.mads_params.read_param("MadsPauseLateralOnBrake")
-    self.unified_engagement_mode = self.mads_params.read_param("MadsUnifiedEngagementMode")
+    self.read_params()
 
   def read_params(self):
     self.main_enabled_toggle = self.mads_params.read_param("MadsMainCruiseAllowed")
+    self.pause_lateral_on_brake_toggle = self.mads_params.read_param("MadsPauseLateralOnBrake")
     self.unified_engagement_mode = self.mads_params.read_param("MadsUnifiedEngagementMode")
+    self.pause_speed_with_blinker = self.mads_params.read_speed_param("MadsPauseSpeedWithBlinkerEnabled", "MadsPauseSpeedWithBlinker",
+                                                                      DEFAULT_MADS_PAUSE_SPEED_WITH_BLINKER, self.selfdrive.is_metric)
+    self.pause_speed = self.mads_params.read_speed_param("MadsPauseSpeedEnabled", "MadsPauseSpeed", DEFAULT_MADS_PAUSE_SPEED, self.selfdrive.is_metric)
+    self.resume_speed = self.mads_params.read_speed_param("MadsResumeSpeedEnabled", "MadsResumeSpeed", DEFAULT_MADS_RESUME_SPEED, self.selfdrive.is_metric)
 
   def update_events(self, CS: car.CarState):
     def update_unified_engagement_mode():
@@ -57,40 +73,48 @@ class ModularAssistiveDrivingSystem:
         self.events.remove(EventName.pcmEnable)
         self.events.remove(EventName.buttonEnable)
 
-    def transition_paused_state():
-      if self.state_machine.state != State.paused:
-        self.events_sp.add(EventNameSP.silentLkasDisable)
-
-    def replace_event(old_event: int, new_event: int):
+    def precondition_failed(old_event: int, new_event: int):
       self.events.remove(old_event)
       self.events_sp.add(new_event)
+      self.pause_reason |= PauseReason.PRECONDITION_FAILED
 
     if not self.selfdrive.enabled and self.enabled:
+
+      self.pause_reason &= ~PauseReason.PRECONDITION_FAILED
       if self.events.has(EventName.doorOpen):
-        replace_event(EventName.doorOpen, EventNameSP.silentDoorOpen)
-        transition_paused_state()
+        precondition_failed(EventName.doorOpen, EventNameSP.silentDoorOpen)
       if self.events.has(EventName.seatbeltNotLatched):
-        replace_event(EventName.seatbeltNotLatched, EventNameSP.silentSeatbeltNotLatched)
-        transition_paused_state()
+        precondition_failed(EventName.seatbeltNotLatched, EventNameSP.silentSeatbeltNotLatched)
       if self.events.has(EventName.wrongGear):
-        replace_event(EventName.wrongGear, EventNameSP.silentWrongGear)
-        transition_paused_state()
+        precondition_failed(EventName.wrongGear, EventNameSP.silentWrongGear)
       if self.events.has(EventName.reverseGear):
-        replace_event(EventName.reverseGear, EventNameSP.silentReverseGear)
-        transition_paused_state()
+        precondition_failed(EventName.reverseGear, EventNameSP.silentReverseGear)
       if self.events.has(EventName.brakeHold):
-        replace_event(EventName.brakeHold, EventNameSP.silentBrakeHold)
-        transition_paused_state()
+        precondition_failed(EventName.brakeHold, EventNameSP.silentBrakeHold)
       if self.events.has(EventName.parkBrake):
-        replace_event(EventName.parkBrake, EventNameSP.silentParkBrake)
-        transition_paused_state()
+        precondition_failed(EventName.parkBrake, EventNameSP.silentParkBrake)
 
       if self.pause_lateral_on_brake_toggle:
         if CS.brakePressed:
-          transition_paused_state()
+          self.pause_reason |= PauseReason.BRAKE
+        else:
+          self.pause_reason &= ~PauseReason.BRAKE
 
-      if not (self.pause_lateral_on_brake_toggle and CS.brakePressed) and \
-         not self.events_sp.contains_in_list(GEARS_ALLOW_PAUSED_SILENT):
+      if self.pause_speed_with_blinker is not None \
+          and (CS.leftBlinker or CS.rightBlinker) \
+          and self.selfdrive.CS_prev.vEgoCluster < self.pause_speed_with_blinker:
+        self.pause_reason |= PauseReason.SPEED
+
+      if self.pause_speed is not None and CS.vEgoCluster < self.pause_speed and CS.steeringPressed:
+        self.pause_reason |= PauseReason.SPEED
+
+      if self.resume_speed is not None and CS.vEgoCluster >= self.resume_speed:
+        self.pause_reason &= ~PauseReason.SPEED
+
+      if self.pause_reason:
+        if self.state_machine.state != State.paused:
+          self.events_sp.add(EventNameSP.silentLkasDisable)
+      else:
         if self.state_machine.state == State.paused:
           self.events_sp.add(EventNameSP.silentLkasEnable)
 
@@ -99,6 +123,9 @@ class ModularAssistiveDrivingSystem:
       self.events.remove(EventName.speedTooLow)
       self.events.remove(EventName.cruiseDisabled)
       self.events.remove(EventName.manualRestart)
+
+    if self.selfdrive.enabled:
+      self.pause_reason = PauseReason(0)
 
     if self.events.has(EventName.pcmEnable) or self.events.has(EventName.buttonEnable):
       update_unified_engagement_mode()

@@ -19,8 +19,8 @@
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/trips_panel.h"
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle_panel.h"
 
-OpLongMaxSpeed::OpLongMaxSpeed() : OptionControlSP(
-  "OpLongMaxSpeed",
+StockAccOverrideSpeed::StockAccOverrideSpeed() : OptionControlSP(
+  "StockAccOverrideSpeed",
   "",
   tr("Use stock ACC when set speed exceeds the given speed."),
   "../assets/offroad/icon_blank.png",
@@ -30,8 +30,8 @@ OpLongMaxSpeed::OpLongMaxSpeed() : OptionControlSP(
   refresh();
 }
 
-void OpLongMaxSpeed::refresh() {
-  QString option = QString::fromStdString(params.get("OpLongMaxSpeed"));
+void StockAccOverrideSpeed::refresh() {
+  QString option = QString::fromStdString(params.get("StockAccOverrideSpeed"));
   bool is_metric = params.getBool("IsMetric");
 
   if (option == "0") {
@@ -42,10 +42,10 @@ void OpLongMaxSpeed::refresh() {
 }
 
 TogglesPanelSP::TogglesPanelSP(SettingsWindowSP *parent) : TogglesPanel(parent) {
-  op_long_max_speed = new OpLongMaxSpeed();
-  op_long_max_speed->showDescription();
-  connect(op_long_max_speed, &OptionControlSP::updateLabels, op_long_max_speed, &OpLongMaxSpeed::refresh);
-  addItem(op_long_max_speed);
+  stock_acc_override_speed = new StockAccOverrideSpeed();
+  stock_acc_override_speed->showDescription();
+  connect(stock_acc_override_speed, &OptionControlSP::updateLabels, stock_acc_override_speed, &StockAccOverrideSpeed::refresh);
+  addItem(stock_acc_override_speed);
 
   // param, title, desc, icon
   std::vector<std::tuple<QString, QString, QString, QString>> toggle_defs{
@@ -87,10 +87,10 @@ void TogglesPanelSP::updateToggles() {
     capnp::FlatArrayMessageReader cmsg_ac(aligned_buf_ac.align(cp_ac_bytes.data(), cp_ac_bytes.size()));
     cereal::CarParamsAC::Reader CP_AC = cmsg_ac.getRoot<cereal::CarParamsAC>();
 
-    op_long_max_speed->setVisible(CP_AC.getStockAccOverrideAvailable());
-    op_long_max_speed->setEnabled(hasLongitudinalControl(CP));
+    stock_acc_override_speed->setVisible(CP_AC.getStockAccOverrideAvailable());
+    stock_acc_override_speed->setEnabled(hasLongitudinalControl(CP));
   } else {
-    op_long_max_speed->setVisible(false);
+    stock_acc_override_speed->setVisible(false);
   }
 }
 

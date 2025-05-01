@@ -166,5 +166,11 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"UploadOnMetered", PERSISTENT | BACKUP},
     {"PresetSelected", CLEAR_ON_MANAGER_START},
     {"RequirePresetAtBoot", PERSISTENT | BACKUP},
-    {"OpLongMaxSpeed", PERSISTENT | BACKUP},
+    {"StockAccOverrideSpeed", PERSISTENT | BACKUP},
+    {"MadsPauseSpeedWithBlinkerEnabled", PERSISTENT | BACKUP},
+    {"MadsPauseSpeedWithBlinker", PERSISTENT | BACKUP},
+    {"MadsPauseSpeedEnabled", PERSISTENT | BACKUP},
+    {"MadsPauseSpeed", PERSISTENT | BACKUP},
+    {"MadsResumeSpeedEnabled", PERSISTENT | BACKUP},
+    {"MadsResumeSpeed", PERSISTENT | BACKUP},
 };

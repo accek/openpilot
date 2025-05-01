@@ -11,6 +11,7 @@ from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
 from opendbc.car.vehicle_model import VehicleModel
+from openpilot.selfdrive.car.cruise import V_CRUISE_UNSET
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl, MIN_LATERAL_CONTROL_SPEED
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
@@ -41,7 +42,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance'] + ['selfdriveStateSP']
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'radarState'] + ['selfdriveStateSP']
                                    + ['onroadEventsAC', 'driverAssistanceAC'],
                                   poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'] + ['carControlSP'] + ['carControlAC', 'controlsStateAC'])
@@ -61,6 +62,11 @@ class Controls:
       self.LaC = LatControlPID(self.CP, self.CI)
     elif self.CP.lateralTuning.which() == 'torque':
       self.LaC = LatControlTorque(self.CP, self.CI)
+
+    self.is_metric = self.params.get_bool("IsMetric")
+    self.stock_acc_override_speed = float(self.params.get("StockAccOverrideSpeed")) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
+    if self.stock_acc_override_speed == 0.0:
+      self.stock_acc_override_speed = float("inf")
 
   def update(self):
     self.sm.update(15)
@@ -107,6 +113,12 @@ class Controls:
       not any(e.overrideLongitudinal for e in self.sm['onroadEventsAC']) and \
       self.CP.openpilotLongitudinalControl
 
+    CC_AC = custom.CarControlAC.new_message()
+    if self.CP.openpilotLongitudinalControl:
+      CC_AC.stockAccOverrideArmed = (CS.vCruiseCluster if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster) >= self.stock_acc_override_speed
+      CC_AC.stockAccOverrideActive = CC_AC.stockAccOverrideArmed and CC.enabled
+    # TODO: fill CC_AC
+
     actuators = CC.actuators
     actuators.longControlState = self.LoC.long_control_state
 
@@ -145,9 +157,6 @@ class Controls:
     CC_SP = custom.CarControlSP.new_message()
     CC_SP.mads = ss_sp.mads
 
-    CC_AC = custom.CarControlAC.new_message()
-    # TODO: fill CC_AC
-
     return CC, CC_SP, CC_AC, lac_log, lac_log_ac
 
   def publish(self, CC, CC_SP, CC_AC, lac_log, lac_log_ac):
@@ -183,6 +192,23 @@ class Controls:
     if self.sm.valid['driverAssistance']:
       hudControl.leftLaneDepart = self.sm['driverAssistance'].leftLaneDeparture
       hudControl.rightLaneDepart = self.sm['driverAssistance'].rightLaneDeparture
+
+    radar_state = self.sm['radarState'] if self.sm.valid['radarState'] else None
+    if radar_state is not None:
+      lead_one = radar_state.leadOne
+      lead_two = radar_state.leadTwo
+      lead = None
+      if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
+        lead = lead_one
+      elif lead_two.status:
+        lead = lead_two
+      if lead is not None:
+        hudControlAC = CC_AC.hudControl
+        hudControlAC.leadDistance = lead.dRel
+        hudControlAC.leadAccel = lead.aRel
+
+    dm_state = self.sm['driverMonitoringState'] if self.sm.valid['driverMonitoringState'] else None
+    CC_AC.stockDriverMonitoring = dm_state is None or dm_state.isDistracted or not dm_state.faceDetected
 
     if self.sm['selfdriveState'].active:
       CO = self.sm['carOutput']
