@@ -21,7 +21,7 @@ class LatControlPID(LatControl):
     pid_log = log.ControlsState.LateralPIDState.new_message()
     pid_log.steeringAngleDeg = float(CS.steeringAngleDeg)
     pid_log.steeringRateDeg = float(CS.steeringRateDeg)
-    pid_log_ac = custom.ControlsStateAC.LateralPIDState.new_message()
+    pid_log_ac = custom.ControlsStateAC.LateralControlState.new_message()
 
     angle_steers_des_no_offset = math.degrees(VM.get_steer_from_curvature(-desired_curvature, CS.vEgo, params.roll))
     angle_steers_des = angle_steers_des_no_offset + params.angleOffsetDeg

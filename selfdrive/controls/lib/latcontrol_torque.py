@@ -41,7 +41,7 @@ class LatControlTorque(LatControl):
 
   def update(self, active, CS, VM, params, steer_limited_by_controls, desired_curvature, calibrated_pose, curvature_limited, model_data=None):
     pid_log = log.ControlsState.LateralTorqueState.new_message()
-    pid_log_ac = custom.ControlsStateAC.LateralTorqueState.new_message()
+    pid_log_ac = custom.ControlsStateAC.LateralControlState.new_message()
 
     if not active:
       output_torque = 0.0

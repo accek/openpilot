@@ -1,6 +1,6 @@
 import math
 
-from cereal import log
+from cereal import log, custom
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 
 STEER_ANGLE_SATURATION_THRESHOLD = 2.5  # Degrees
@@ -13,7 +13,7 @@ class LatControlAngle(LatControl):
 
   def update(self, active, CS, VM, params, steer_limited_by_controls, desired_curvature, calibrated_pose, curvature_limited, model_data=None):
     angle_log = log.ControlsState.LateralAngleState.new_message()
-    angle_log_ac = log.ControlsStateAC.LateralAngleState.new_message()
+    angle_log_ac = custom.ControlsStateAC.LateralControlState.new_message()
 
     if not active:
       angle_log.active = False
