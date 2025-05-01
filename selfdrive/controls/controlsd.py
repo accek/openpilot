@@ -68,7 +68,7 @@ class Controls:
       self.LaC = LatControlTorque(self.CP, self.CI)
 
     self.is_metric = self.params.get_bool("IsMetric")
-    self.stock_acc_override_speed = float(self.params.get("StockAccOverrideSpeed")) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
+    self.stock_acc_override_speed = float(self.params.get("StockAccOverrideSpeed") or 0.0) * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
     if self.stock_acc_override_speed == 0.0:
       self.stock_acc_override_speed = float("inf")
 
