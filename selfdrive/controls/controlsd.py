@@ -189,7 +189,7 @@ class Controls:
 
     if self.sm.valid['driverAssistanceAC']:
       hudControl.leftLaneVisible = self.sm['driverAssistanceAC'].leftLaneVisible
-      hudControl.rightLaneVisible = self.sm['driverAssistanceAC'].rightLaneVisisble
+      hudControl.rightLaneVisible = self.sm['driverAssistanceAC'].rightLaneVisible
     else:
       hudControl.leftLaneVisible = True
       hudControl.rightLaneVisible = True
