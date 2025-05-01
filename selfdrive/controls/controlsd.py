@@ -117,7 +117,7 @@ class Controls:
       not any(e.overrideLongitudinal for e in self.sm['onroadEventsAC']) and \
       self.CP.openpilotLongitudinalControl
 
-    CC_AC = custom.CarControlAC.new_message()
+    CC_AC = car_custom.CarControlAC.new_message()
     if self.CP.openpilotLongitudinalControl:
       CC_AC.stockAccOverrideArmed = (CS.vCruiseCluster if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster) >= self.stock_acc_override_speed
       CC_AC.stockAccOverrideActive = CC_AC.stockAccOverrideArmed and CC.enabled

@@ -308,7 +308,7 @@ class Car:
     initialized = (not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents']) and
                    self.sm.seen['onroadEvents'])
     if not self.CP.passive and initialized:
-      self.controls_update(CS, self.sm['carControl'], self.sm['carControlSP'])
+      self.controls_update(CS, self.sm['carControl'], self.sm['carControlSP'], self.sm['carControlAC'])
 
     self.initialized_prev = initialized
     self.CS_prev = CS
