@@ -197,6 +197,9 @@ class Controls:
       hudControl.leftLaneDepart = self.sm['driverAssistance'].leftLaneDeparture
       hudControl.rightLaneDepart = self.sm['driverAssistance'].rightLaneDeparture
 
+    hudControlAC = CC_AC.hudControl
+    hudControlAC.leadDistance = float('nan')
+    hudControlAC.leadAccel = float('nan')
     radar_state = self.sm['radarState'] if self.sm.valid['radarState'] else None
     if radar_state is not None:
       lead_one = radar_state.leadOne
@@ -207,7 +210,6 @@ class Controls:
       elif lead_two.status:
         lead = lead_two
       if lead is not None:
-        hudControlAC = CC_AC.hudControl
         hudControlAC.leadDistance = lead.dRel
         hudControlAC.leadAccel = lead.aRel
 
