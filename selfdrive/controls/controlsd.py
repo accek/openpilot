@@ -119,7 +119,7 @@ class Controls:
 
     CC_AC = car_custom.CarControlAC.new_message()
     if self.CP.openpilotLongitudinalControl:
-      cruise_set_speed = ((CS.vCruiseCluster * CV.KPH_TO_MS) if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster)
+      cruise_set_speed = (CS.vCruiseCluster * CV.KPH_TO_MS) if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster
       CC_AC.stockAccOverrideArmed = cruise_set_speed >= self.stock_acc_override_speed
       CC_AC.stockAccOverrideActive = CC_AC.stockAccOverrideArmed and CC.enabled
     # TODO: fill CC_AC
