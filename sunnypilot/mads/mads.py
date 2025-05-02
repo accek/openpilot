@@ -34,7 +34,6 @@ class PauseReason(Flag):
   SPEED = auto()
 
 class ResumeReason(Flag):
-  PRECONDITIONS_OK = auto()
   BRAKE_RELEASED = auto()
   SPEED = auto()
   CRUISE_ENABLED = auto()
