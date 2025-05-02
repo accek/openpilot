@@ -35,4 +35,4 @@ class LatControl(ABC):
     else:
       self.sat_count[key] -= self.sat_count_rate
     self.sat_count[key] = np.clip(self.sat_count[key], 0.0, self.sat_limit[key])
-    return self.sat_count[key] > (self.sat_limit[key] - 1e-3)
+    return bool(self.sat_count[key] > (self.sat_limit[key] - 1e-3))
