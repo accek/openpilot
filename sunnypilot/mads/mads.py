@@ -33,6 +33,12 @@ class PauseReason(Flag):
   BRAKE = auto()
   SPEED = auto()
 
+class ResumeReason(Flag):
+  PRECONDITIONS_OK = auto()
+  BRAKE_RELEASED = auto()
+  SPEED = auto()
+  CRUISE_ENABLED = auto()
+
 class ModularAssistiveDrivingSystem:
   def __init__(self, selfdrive):
     self.mads_params = MadsParams()
@@ -46,7 +52,7 @@ class ModularAssistiveDrivingSystem:
     self.state_machine = StateMachine(self)
     self.events = self.selfdrive.events
     self.events_sp = self.selfdrive.events_sp
-    self.pause_reason = PauseReason(0)
+    self.paused_for_braking = False
     self.first_blinker_frame = 0
 
     if self.selfdrive.CP.brand == "hyundai":
@@ -67,56 +73,35 @@ class ModularAssistiveDrivingSystem:
     self.resume_speed = self.mads_params.read_speed_param("MadsResumeSpeedEnabled", "MadsResumeSpeed", DEFAULT_MADS_RESUME_SPEED, self.selfdrive.is_metric)
 
   def update_events(self, CS: car.CarState):
-    def update_unified_engagement_mode():
-      uem_blocked = self.enabled or (self.selfdrive.enabled and self.selfdrive.enabled_prev)
-      if (self.unified_engagement_mode and uem_blocked) or not self.unified_engagement_mode:
-        self.events.remove(EventName.pcmEnable)
-        self.events.remove(EventName.buttonEnable)
-
-    def precondition_failed(old_event: int, new_event: int):
-      self.events.remove(old_event)
-      self.events_sp.add(new_event)
-      self.pause_reason |= PauseReason.PRECONDITION_FAILED
+    pause_reason = PauseReason(0)
+    resume_reason = ResumeReason(0)
 
     if not self.selfdrive.enabled and self.enabled:
-
-      self.pause_reason &= ~PauseReason.PRECONDITION_FAILED
-      if self.events.has(EventName.doorOpen):
-        precondition_failed(EventName.doorOpen, EventNameSP.silentDoorOpen)
-      if self.events.has(EventName.seatbeltNotLatched):
-        precondition_failed(EventName.seatbeltNotLatched, EventNameSP.silentSeatbeltNotLatched)
-      if self.events.has(EventName.wrongGear):
-        precondition_failed(EventName.wrongGear, EventNameSP.silentWrongGear)
-      if self.events.has(EventName.reverseGear):
-        precondition_failed(EventName.reverseGear, EventNameSP.silentReverseGear)
-      if self.events.has(EventName.brakeHold):
-        precondition_failed(EventName.brakeHold, EventNameSP.silentBrakeHold)
-      if self.events.has(EventName.parkBrake):
-        precondition_failed(EventName.parkBrake, EventNameSP.silentParkBrake)
-
-      if self.pause_lateral_on_brake_toggle:
-        if CS.brakePressed:
-          self.pause_reason |= PauseReason.BRAKE
-        else:
-          self.pause_reason &= ~PauseReason.BRAKE
+      for old_event, new_event in [
+        (EventName.doorOpen, EventNameSP.silentDoorOpen),
+        (EventName.seatbeltNotLatched, EventNameSP.silentSeatbeltNotLatched),
+        (EventName.wrongGear, EventNameSP.silentWrongGear),
+        (EventName.reverseGear, EventNameSP.silentReverseGear),
+        (EventName.brakeHold, EventNameSP.silentBrakeHold),
+        (EventName.parkBrake, EventNameSP.silentParkBrake),
+      ]:
+        if self.events.has(old_event):
+          self.events.remove(old_event)
+          self.events_sp.add(new_event)
+          pause_reason |= PauseReason.PRECONDITION_FAILED
 
       if self.pause_speed_with_blinker is not None \
           and (CS.leftBlinker or CS.rightBlinker) \
-          and self.selfdrive.CS_prev.vEgoCluster < self.pause_speed_with_blinker:
-        self.pause_reason |= PauseReason.SPEED
+          and self.selfdrive.CS_prev.vEgoCluster < self.pause_speed_with_blinker \
+          and not self.selfdrive.enabled:
+        pause_reason |= PauseReason.SPEED
 
-      if self.pause_speed is not None and CS.vEgoCluster < self.pause_speed and CS.steeringPressed:
-        self.pause_reason |= PauseReason.SPEED
+      if self.pause_speed is not None and CS.vEgoCluster < self.pause_speed and CS.steeringPressed \
+          and not self.selfdrive.enabled:
+        pause_reason |= PauseReason.SPEED
 
       if self.resume_speed is not None and CS.vEgoCluster >= self.resume_speed:
-        self.pause_reason &= ~PauseReason.SPEED
-
-      if self.pause_reason:
-        if self.state_machine.state != State.paused:
-          self.events_sp.add(EventNameSP.silentLkasDisable)
-      else:
-        if self.state_machine.state == State.paused:
-          self.events_sp.add(EventNameSP.silentLkasEnable)
+        resume_reason |= ResumeReason.SPEED
 
       self.events.remove(EventName.preEnableStandstill)
       self.events.remove(EventName.belowEngageSpeed)
@@ -124,15 +109,30 @@ class ModularAssistiveDrivingSystem:
       self.events.remove(EventName.cruiseDisabled)
       self.events.remove(EventName.manualRestart)
 
-    if self.selfdrive.enabled:
-      self.pause_reason = PauseReason(0)
+    if self.pause_lateral_on_brake_toggle:
+      if CS.brakePressed and (self.state_machine.state != State.paused or self.paused_for_braking):
+        pause_reason |= PauseReason.BRAKE
+        self.paused_for_braking = True
+      elif self.paused_for_braking and not CS.brakePressed:
+        resume_reason |= ResumeReason.BRAKE_RELEASED
+        self.paused_for_braking = False
 
     if self.events.has(EventName.pcmEnable) or self.events.has(EventName.buttonEnable):
-      update_unified_engagement_mode()
-    else:
-      if self.main_enabled_toggle:
-        if CS.cruiseState.available and not self.selfdrive.CS_prev.cruiseState.available:
-          self.events_sp.add(EventNameSP.lkasEnable)
+      if not self.unified_engagement_mode or self.enabled or (self.selfdrive.enabled and self.selfdrive.enabled_prev):
+        self.events.remove(EventName.pcmEnable)
+        self.events.remove(EventName.buttonEnable)
+
+    if self.unified_engagement_mode and self.selfdrive.enabled:
+      resume_reason |= ResumeReason.CRUISE_ENABLED
+    if self.main_enabled_toggle and CS.cruiseState.available and not self.selfdrive.CS_prev.cruiseState.available:
+      self.events_sp.add(EventNameSP.lkasEnable)
+
+    if pause_reason:
+      if self.state_machine.state != State.paused:
+        self.events_sp.add(EventNameSP.silentLkasDisable)
+    elif resume_reason:
+      if self.state_machine.state == State.paused:
+        self.events_sp.add(EventNameSP.silentLkasEnable)
 
     for be in CS.buttonEvents:
       if be.type == ButtonType.cancel:
