@@ -103,7 +103,7 @@ class SelfdriveD(CruiseHelper):
                                    'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
                                    'controlsState', 'carControl', 'driverAssistance', 'alertDebug'] + \
-                                   ['driverAssistanceAC'] + \
+                                   ['carControlAC', 'driverAssistanceAC'] + \
                                    self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore,
                                   ignore_valid=ignore, frequency=int(1/DT_CTRL))
@@ -420,7 +420,7 @@ class SelfdriveD(CruiseHelper):
     CruiseHelper.update(self, CS, CS_AC, self.events_sp, self.experimental_mode)
 
     # decrement personality on distance button press
-    if self.CP.openpilotLongitudinalControl:
+    if self.CP.openpilotLongitudinalControl and (not self.sm['carControlAC'].stockAccOverrideArmed and self.CP_AC.stockAccSeparateGapControl):
       personality_delta = 0
       if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents) or \
           any(not be.pressed and be.type == ButtonTypeAC.gapAdjustCruiseDown for be in CS_AC.buttonEvents):
