@@ -15,7 +15,7 @@ if __name__ == '__main__':  # generating code
 else:
   from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.c_generated_code.acados_ocp_solver_pyx import AcadosOcpSolverCython
 
-from casadi import SX, vertcat
+from casadi import SX, vertcat, fmax
 
 MODEL_NAME = 'long'
 LONG_MPC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -164,7 +164,7 @@ def gen_long_ocp():
   # from an obstacle at every timestep. This obstacle can be a lead car
   # or other object. In e2e mode we can use x_position targets as a cost
   # instead.
-  costs = [((x_obstacle - x_ego) - (desired_dist_comfort)) / (v_ego + 10.),
+  costs = [((x_obstacle - x_ego) - (desired_dist_comfort)) / fmax(v_ego, 1.5),
            x_ego,
            v_ego,
            a_ego,
@@ -179,7 +179,7 @@ def gen_long_ocp():
   constraints = vertcat(v_ego,
                         (a_ego - a_min),
                         (a_max - a_ego),
-                        ((x_obstacle - x_ego) - lead_danger_factor * (desired_dist_comfort)) / (v_ego + 10.))
+                        ((x_obstacle - x_ego) - lead_danger_factor * (desired_dist_comfort)) / fmax(v_ego, 2.5))
   ocp.model.con_h_expr = constraints
 
   x0 = np.zeros(X_DIM)
