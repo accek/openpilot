@@ -219,7 +219,7 @@ class Controls:
         lead = lead_two
       if lead is not None:
         hudControlAC.leadDistance = lead.dRel
-        hudControlAC.leadAccel = lead.aRel
+        hudControlAC.leadAccel = lead.aLeadK
 
     dm_state = self.sm['driverMonitoringState'] if self.sm.valid['driverMonitoringState'] else None
     CC_AC.stockDriverMonitoring = dm_state is None or dm_state.isDistracted or not dm_state.faceDetected
