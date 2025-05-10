@@ -103,7 +103,7 @@ class SelfdriveD(CruiseHelper):
                                    'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
                                    'controlsState', 'carControl', 'driverAssistance', 'alertDebug'] + \
-                                   ['carControlAC', 'driverAssistanceAC'] + \
+                                   ['carControlAC', 'driverAssistanceAC', 'controlsStateAC'] + \
                                    self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore,
                                   ignore_valid=ignore, frequency=int(1/DT_CTRL))
@@ -383,6 +383,8 @@ class SelfdriveD(CruiseHelper):
     recent_steer_pressed = (self.sm.frame - self.last_steering_pressed_frame)*DT_CTRL < 2.0
     controlstate = self.sm['controlsState']
     lac = getattr(controlstate.lateralControlState, controlstate.lateralControlState.which())
+    controlstate_ac = self.sm['controlsStateAC']
+    lac_ac = controlstate_ac.lateralControlState
     if lac.active and not recent_steer_pressed and not self.CP.notCar:
       clipped_speed = max(CS.vEgo, MIN_LATERAL_CONTROL_SPEED)
       actual_lateral_accel = controlstate.curvature * (clipped_speed**2)
@@ -392,6 +394,8 @@ class SelfdriveD(CruiseHelper):
       # TODO: lac.saturated includes speed and other checks, should be pulled out
       if undershooting and turning and lac.saturated:
         self.events.add(EventName.steerSaturated)
+      if lac_ac.saturating:
+        self.events_ac.add(EventNameAC.steerSaturating)
 
     # Check for FCW
     stock_long_is_braking = self.enabled and not self.CP.openpilotLongitudinalControl and CS.aEgo < -1.25
