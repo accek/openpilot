@@ -83,7 +83,7 @@ function launch {
   touch "$LAST_BUILD_FILE"
   LAST_BUILD=$(< "$LAST_BUILD_FILE")
   CURRENT_REVISION=$(git rev-parse HEAD)
-  if [ ! -f $DIR/prebuilt ] && { git diff-index --quiet HEAD -- || [ "$CURRENT_REVISION" != "$LAST_BUILD" ] }; then
+  if [ ! -f $DIR/prebuilt ] && ( git diff-index --quiet HEAD -- || [ "$CURRENT_REVISION" != "$LAST_BUILD" ] ); then
     ./build.py && echo -n "$CURRENT_REVISION" > "$LAST_BUILD_FILE"
   fi
   ./manager.py
