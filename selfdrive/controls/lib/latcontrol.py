@@ -32,7 +32,7 @@ class LatControl(ABC):
   def __check_saturation(self, key, saturation, CS, steer_limited_by_controls, curvature_limited):
     if (saturation or curvature_limited) and CS.vEgo > self.sat_check_min_speed and not steer_limited_by_controls and not CS.steeringPressed:
       self.sat_count[key] += self.sat_count_rate
-    else:
+    elif not steer_limited_by_controls:
       self.sat_count[key] -= self.sat_count_rate
     self.sat_count[key] = np.clip(self.sat_count[key], 0.0, self.sat_limit[key])
     return bool(self.sat_count[key] > (self.sat_limit[key] - 1e-3))
