@@ -79,8 +79,12 @@ function launch {
 
   # start manager
   cd system/manager
-  if [ ! -f $DIR/prebuilt ]; then
-    ./build.py
+  LAST_BUILD_FILE="$DIR/.last_build"
+  touch "$LAST_BUILD_FILE"
+  LAST_BUILD=$(< "$LAST_BUILD_FILE")
+  CURRENT_REVISION=$(git rev-parse HEAD)
+  if [ ! -f $DIR/prebuilt ] && { git diff-index --quiet HEAD -- || [ "$CURRENT_REVISION" != "$LAST_BUILD" ] }; then
+    ./build.py && echo -n "$CURRENT_REVISION" > "$LAST_BUILD_FILE"
   fi
   ./manager.py
 
