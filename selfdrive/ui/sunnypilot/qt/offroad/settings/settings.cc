@@ -61,6 +61,12 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindowSP *parent) : TogglesPanel(parent) 
       tr("If enabled, the device will prefer torque tune over PID-based for steering control."),
       "../assets/offroad/icon_blank.png",
     },
+    {
+      "WideRoadCameraInChillMode",
+      tr("Wide Road Camera in Chill Mode"),
+      tr("If enabled, the device will show wide road camera at low speed also in chill mode."),
+      "../assets/offroad/icon_blank.png",
+    }
   };
 
   QObject::connect(uiStateSP(), &UIStateSP::uiUpdate, this, &TogglesPanelSP::updateState);
