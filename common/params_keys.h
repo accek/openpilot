@@ -173,4 +173,5 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"MadsPauseSpeed", PERSISTENT | BACKUP},
     {"MadsResumeSpeedEnabled", PERSISTENT | BACKUP},
     {"MadsResumeSpeed", PERSISTENT | BACKUP},
+    {"PreferTorqueTune", PERSISTENT | BACKUP},
 };

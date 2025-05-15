@@ -365,7 +365,7 @@ def get_car_params_callback(rc, pm, msgs, fingerprint):
       with car.CarParams.from_bytes(cached_params_raw) as _cached_params:
         cached_params = _cached_params
 
-    _CI = get_car(*can_callbacks, lambda obd: None, Params().get_bool("ExperimentalLongitudinalEnabled"), cached_params=cached_params)
+    _CI = get_car(*can_callbacks, lambda obd: None, Params().get_bool("ExperimentalLongitudinalEnabled"), Params().get_bool("PreferTorqueTune"), cached_params=cached_params)
     CP, CP_SP = _CI.CP, _CI.CP_SP
 
     if not params.get_bool("DisengageOnAccelerator"):

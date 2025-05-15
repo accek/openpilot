@@ -55,6 +55,12 @@ TogglesPanelSP::TogglesPanelSP(SettingsWindowSP *parent) : TogglesPanel(parent) 
       tr("If enabled, the device will display a profile selection dialog and will not activate until a selection is made."),
       "../assets/offroad/icon_blank.png",
     },
+    {
+      "PreferTorqueTune",
+      tr("Prefer Torque Tune for Lateral"),
+      tr("If enabled, the device will prefer torque tune over PID-based for steering control."),
+      "../assets/offroad/icon_blank.png",
+    },
   };
 
   QObject::connect(uiStateSP(), &UIStateSP::uiUpdate, this, &TogglesPanelSP::updateState);

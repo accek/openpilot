@@ -99,6 +99,7 @@ class Car:
           break
 
       experimental_long_allowed = self.params.get_bool("ExperimentalLongitudinalEnabled")
+      prefer_torque_tune = self.params.get_bool("PreferTorqueTune")
       num_pandas = len(messaging.recv_one_retry(self.sm.sock['pandaStates']).pandaStates)
 
       cached_params = None
@@ -109,7 +110,8 @@ class Car:
 
       fixed_fingerprint = json.loads(self.params.get("CarPlatformBundle", encoding='utf-8') or "{}").get("platform", None)
 
-      self.CI = get_car(*self.can_callbacks, obd_callback(self.params), experimental_long_allowed, num_pandas, cached_params, fixed_fingerprint)
+      self.CI = get_car(*self.can_callbacks, obd_callback(self.params), experimental_long_allowed, prefer_torque_tune, num_pandas,
+                        cached_params, fixed_fingerprint)
       sunnypilot_interfaces.setup_car_interface_sp(self.CI.CP, self.CI.CP_SP, self.params)
       self.RI = interfaces[self.CI.CP.carFingerprint].RadarInterface(self.CI.CP, self.CI.CP_SP)
       self.CP = self.CI.CP
