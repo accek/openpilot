@@ -1,7 +1,7 @@
 from cereal import log, car, custom
 import cereal.messaging as messaging
 from openpilot.common.realtime import DT_CTRL
-from openpilot.acspilot.selfdrive.selfdrived.events_base import EventsBase, Priority, ET, Alert, \
+from openpilot.sunnypilot.selfdrive.selfdrived.events_base import EventsBase, Priority, ET, Alert, \
   NoEntryAlert, ImmediateDisableAlert, SoftDisableAlert, AlertCallbackType
 
 
