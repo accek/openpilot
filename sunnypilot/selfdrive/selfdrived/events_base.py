@@ -108,6 +108,12 @@ class EventsBase:
   def contains(self, event_type: str) -> bool:
     return any(event_type in self.get_events_mapping().get(e, {}) for e in self.events)
 
+  def get_event_types(self) -> set[str]:
+    event_types: set[str] = set()
+    for e in self.events:
+      event_types.update(self.get_events_mapping().get(e, {}).keys())
+    return event_types
+
   def create_alerts(self, event_types: list[str], callback_args=None):
     if callback_args is None:
       callback_args = []
