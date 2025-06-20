@@ -108,15 +108,15 @@ Presets::Presets(QWidget* parent) : QFrame(parent) {
       params.put("OpenpilotEnabledToggle", "0");
       params.put("OnroadScreenOff", "-1");
       params.put("OnroadScreenOffBrightness", "0");
-      params.put("ExperimentalLongitudinalEnabled", "0");
+      params.put("AlphaLongitudinalEnabled", "0");
     } else {
       params.put("OpenpilotEnabledToggle", "1");
       params.put("OnroadScreenOff", "-2");
       params.put("OnroadScreenOffBrightness", "50");
       if (btn == preset_1) {
-        params.put("ExperimentalLongitudinalEnabled", "0");
+        params.put("AlphaLongitudinalEnabled", "0");
       } else if (btn == preset_2) {
-        params.put("ExperimentalLongitudinalEnabled", "1");
+        params.put("AlphaLongitudinalEnabled", "1");
       }
     }
 
