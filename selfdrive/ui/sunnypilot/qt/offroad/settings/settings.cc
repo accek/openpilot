@@ -25,7 +25,7 @@
 
 StockAccOverrideSpeed::StockAccOverrideSpeed() : OptionControlSP(
   "StockAccOverrideSpeed",
-  "",
+  tr("Stock ACC Override Speed"),
   tr("Use stock ACC when set speed exceeds the given speed."),
   "../assets/offroad/icon_blank.png",
   {0, 255},
