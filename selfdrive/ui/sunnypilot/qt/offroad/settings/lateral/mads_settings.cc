@@ -151,7 +151,8 @@ void MadsSettings::updateToggles(bool _offroad) {
 
   offroad = _offroad;
 }
-oPauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
+
+PauseLateralSpeed::PauseLateralSpeed() : OptionControlSP(
   "MadsPauseSpeed",
   "",
   tr("Pause lateral actuation when traveling below the desired speed selected and driver steers. Default is 10 MPH or 16 km/h."),
