@@ -282,12 +282,6 @@ class Controls(ControlsExt):
     cc_ac_send.carControlAC = CC_AC
     self.pm.send('carControlAC', cc_ac_send)
 
-    # carControlAC
-    cc_ac_send = messaging.new_message('carControlAC')
-    cc_ac_send.valid = CS.canValid
-    cc_ac_send.carControlAC = CC_AC
-    self.pm.send('carControlAC', cc_ac_send)
-
   def params_thread(self, evt):
     while not evt.is_set():
       self.get_params_sp()
