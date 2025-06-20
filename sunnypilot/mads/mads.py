@@ -84,7 +84,7 @@ class ModularAssistiveDrivingSystem:
 
     return False
 
-  def update_events(self, CS: car.CarState):
+  def update_events(self, CS: structs.CarState):
     pause_reason = PauseReason(0)
     resume_reason = ResumeReason(0)
 
