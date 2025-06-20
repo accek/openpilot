@@ -18,7 +18,7 @@ UIStateSP::UIStateSP(QObject *parent) : UIState(parent) {
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
     "pandaStates", "carParams", "driverMonitoringState", "carState", "driverStateV2",
     "wideRoadCameraState", "managerState", "selfdriveState", "longitudinalPlan",
-    "modelManagerSP", "selfdriveStateSP", "longitudinalPlanSP", "carStateAC",
+    "modelManagerSP", "selfdriveStateSP", "longitudinalPlanSP", "backupManagerSP", "carStateAC",
   });
 
   // update timer
@@ -41,6 +41,7 @@ void UIStateSP::update() {
 
 DeviceSP::DeviceSP(QObject *parent) : Device(parent) {
   QObject::connect(uiStateSP(), &UIStateSP::uiUpdate, this, &DeviceSP::update);
+  QObject::connect(this, &Device::displayPowerChanged, this, &DeviceSP::handleDisplayPowerChanged);
 }
 
 void DeviceSP::updateWakefulness(const UIStateSP &s) {
@@ -66,4 +67,11 @@ void UIStateSP::setSunnylinkDeviceUsers(const std::vector<UserModel>& users) {
 DeviceSP *deviceSP() {
   static DeviceSP _device;
   return &_device;
+}
+
+void DeviceSP::handleDisplayPowerChanged(bool on) {
+  // if enabled, trigger offroad mode when device goes to sleep
+  if (params.get("DeviceBootMode") == "1" && not on) {
+    params.putBool("OffroadMode", true);
+  }
 }

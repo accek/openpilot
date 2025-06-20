@@ -103,10 +103,12 @@ Params::~Params() {
   assert(queue.empty());
 }
 
-std::vector<std::string> Params::allKeys() const {
+std::vector<std::string> Params::allKeys(ParamKeyType type) const {
   std::vector<std::string> ret;
   for (auto &p : keys) {
-    ret.push_back(p.first);
+    if (type == ALL || (p.second & type)) {
+      ret.push_back(p.first);
+    }
   }
   return ret;
 }
@@ -140,7 +142,7 @@ int Params::put(const char* key, const char* value, size_t value_size) {
     }
 
     // fsync to force persist the changes.
-    if ((result = fsync(tmp_fd)) < 0) break;
+    if ((result = HANDLE_EINTR(fsync(tmp_fd))) < 0) break;
 
     FileLock file_lock(params_path + "/.lock");
 

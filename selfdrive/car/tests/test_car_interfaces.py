@@ -19,6 +19,8 @@ from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.test.fuzzy_generation import FuzzyGenerator
 
+from openpilot.sunnypilot.selfdrive.car import interfaces as sunnypilot_interfaces
+
 ALL_ECUS = {ecu for ecus in FW_VERSIONS.values() for ecu in ecus.keys()}
 ALL_ECUS |= {ecu for config in FW_QUERY_CONFIGS.values() for ecu in config.extra_ecus}
 
@@ -40,11 +42,12 @@ class TestCarInterfaces:
     args = get_fuzzy_car_interface_args(data.draw)
 
     car_params = CarInterface.get_params(car_name, args['fingerprints'], args['car_fw'],
-                                         experimental_long=args['experimental_long'], docs=False)
+                                         alpha_long=args['alpha_long'], is_release=False, docs=False)
     car_params_sp = CarInterface.get_params_sp(car_params, car_name, args['fingerprints'], args['car_fw'],
-                                                           experimental_long=args['experimental_long'], docs=False)
+                                               alpha_long=args['alpha_long'], docs=False)
     car_params = car_params.as_reader()
     car_interface = CarInterface(car_params, car_params_sp)
+    sunnypilot_interfaces.setup_interfaces(car_interface)
     assert car_params
     assert car_params_sp
     assert car_interface
@@ -100,8 +103,8 @@ class TestCarInterfaces:
     #  hypothesis also slows down significantly with just one more message draw
     LongControl(car_params)
     if car_params.steerControlType == CarParams.SteerControlType.angle:
-      LatControlAngle(car_params, car_interface)
+      LatControlAngle(car_params, car_params_sp, car_interface)
     elif car_params.lateralTuning.which() == 'pid':
-      LatControlPID(car_params, car_interface)
+      LatControlPID(car_params, car_params_sp, car_interface)
     elif car_params.lateralTuning.which() == 'torque':
-      LatControlTorque(car_params, car_interface)
+      LatControlTorque(car_params, car_params_sp, car_interface)

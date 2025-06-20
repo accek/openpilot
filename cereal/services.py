@@ -36,6 +36,7 @@ _services: dict[str, tuple] = {
   "errorLogMessage": (True, 0., 1),
   "liveCalibration": (True, 4., 4),
   "liveTorqueParameters": (True, 4., 1),
+  "liveDelay": (True, 4., 1),
   "androidLog": (True, 0.),
   "carState": (True, 100., 10),
   "carControl": (True, 100., 10),
@@ -76,11 +77,14 @@ _services: dict[str, tuple] = {
 
   # sunnypilot
   "modelManagerSP": (False, 1., 1),
+  "backupManagerSP": (False, 1., 1),
   "selfdriveStateSP": (True, 100., 10),
   "longitudinalPlanSP": (True, 20., 10),
   "onroadEventsSP": (True, 1., 1),
   "carParamsSP": (True, 0.02, 1),
   "carControlSP": (True, 100., 10),
+  "carStateSP": (True, 100., 10),
+  "liveMapDataSP": (True, 1., 1),
 
   # ACSPilot
   "controlsStateAC": (True, 100., 10),

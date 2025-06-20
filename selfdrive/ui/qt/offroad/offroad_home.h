@@ -41,14 +41,16 @@ protected:
   Params params;
 
   QHBoxLayout *home_layout;
+  QHBoxLayout *header_layout;
   QStackedLayout* center_layout;
   QVBoxLayout *right_column;
 
   virtual int computeCenterLayoutIndex();
   virtual void refresh();
 
-private:
   void showEvent(QShowEvent *event) override;
+
+private:
   void hideEvent(QHideEvent *event) override;
 
   bool update_available;

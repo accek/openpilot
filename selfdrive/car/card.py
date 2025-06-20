@@ -18,13 +18,12 @@ from opendbc.car.carlog import carlog
 from opendbc.car.fw_versions import ObdCallback
 from opendbc.car.car_helpers import get_car, interfaces
 from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
-from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from openpilot.selfdrive.pandad import can_capnp_to_list, can_list_to_can_capnp
 from openpilot.selfdrive.car.cruise import VCruiseHelper
 from openpilot.selfdrive.car.car_specific import MockCarState
 from openpilot.selfdrive.car.helpers import convert_carControlSP, convert_to_capnp
 
-from openpilot.sunnypilot.mads.mads import MadsParams
+from openpilot.sunnypilot.mads.helpers import set_alternative_experience, set_car_specific_params
 from openpilot.sunnypilot.selfdrive.car import interfaces as sunnypilot_interfaces
 
 REPLAY = "REPLAY" in os.environ
@@ -75,12 +74,13 @@ class Car:
   def __init__(self, CI=None, RI=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
     self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP'] + ['carControlAC'])
-    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP'] + ['carParamsAC', 'carStateAC'])
+    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP', 'carStateSP'] + ['carParamsAC', 'carStateAC'])
 
     self.can_rcv_cum_timeout_counter = 0
 
     self.CC_prev = car.CarControl.new_message()
     self.CS_prev = car.CarState.new_message()
+    self.CS_SP_prev = custom.CarStateSP.new_message()
     self.CS_AC_prev = structs.CarStateAC.new_message()
     self.initialized_prev = False
 
@@ -90,6 +90,8 @@ class Car:
 
     self.can_callbacks = can_comm_callbacks(self.can_sock, self.pm.sock['sendcan'])
 
+    is_release = self.params.get_bool("IsReleaseBranch")
+
     if CI is None:
       # wait for one pandaState and one CAN packet
       print("Waiting for CAN messages...")
@@ -98,7 +100,7 @@ class Car:
         if len(can.can) > 0:
           break
 
-      experimental_long_allowed = self.params.get_bool("ExperimentalLongitudinalEnabled")
+      alpha_long_allowed = self.params.get_bool("AlphaLongitudinalEnabled")
       prefer_torque_tune = self.params.get_bool("PreferTorqueTune")
       num_pandas = len(messaging.recv_one_retry(self.sm.sock['pandaStates']).pandaStates)
 
@@ -110,9 +112,9 @@ class Car:
 
       fixed_fingerprint = json.loads(self.params.get("CarPlatformBundle", encoding='utf-8') or "{}").get("platform", None)
 
-      self.CI = get_car(*self.can_callbacks, obd_callback(self.params), experimental_long_allowed, prefer_torque_tune, num_pandas,
+      self.CI = get_car(*self.can_callbacks, obd_callback(self.params), alpha_long_allowed, is_release, prefer_torque_tune, num_pandas,
                         cached_params, fixed_fingerprint)
-      sunnypilot_interfaces.setup_car_interface_sp(self.CI.CP, self.CI.CP_SP, self.params)
+      sunnypilot_interfaces.setup_interfaces(self.CI, self.params)
       self.RI = interfaces[self.CI.CP.carFingerprint].RadarInterface(self.CI.CP, self.CI.CP_SP)
       self.CP = self.CI.CP
       self.CP_SP = self.CI.CP_SP
@@ -124,30 +126,23 @@ class Car:
       self.CI, self.CP, self.CP_SP, self.CP_AC = CI, CI.CP, CI.CP_SP, CI.CP_AC
       self.RI = RI
 
-    # set alternative experiences from parameters
-    disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
     self.CP.alternativeExperience = 0
-    if not disengage_on_accelerator:
-      self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.DISABLE_DISENGAGE_ON_GAS
-
     # mads
-    MadsParams().set_alternative_experience(self.CP)
-    MadsParams().set_car_specific_params(self.CP, self.CP_SP)
+    set_alternative_experience(self.CP, self.params)
+    set_car_specific_params(self.CP, self.CP_SP, self.params)
 
     # Dynamic Experimental Control
     self.dynamic_experimental_control = self.params.get_bool("DynamicExperimentalControl")
 
     openpilot_enabled_toggle = self.params.get_bool("OpenpilotEnabledToggle")
-
     controller_available = self.CI.CC is not None and openpilot_enabled_toggle and not self.CP.dashcamOnly
-
     self.CP.passive = not controller_available or self.CP.dashcamOnly
     if self.CP.passive:
       safety_config = structs.CarParams.SafetyConfig()
       safety_config.safetyModel = structs.CarParams.SafetyModel.noOutput
       self.CP.safetyConfigs = [safety_config]
 
-    if self.CP.secOcRequired and not self.params.get_bool("IsReleaseBranch"):
+    if self.CP.secOcRequired and not is_release:
       # Copy user key if available
       try:
         with open("/cache/params/SecOCKey") as f:
@@ -205,16 +200,17 @@ class Car:
     # log fingerprint in sentry
     sunnypilot_interfaces.log_fingerprint(self.CP)
 
-  def state_update(self) -> tuple[car.CarState, car_custom.CarStateAC, structs.RadarDataT | None]:
+  def state_update(self) -> tuple[car.CarState, custom.CarStateSP, car_custom.CarStateAC, structs.RadarDataT | None]:
     """carState update loop, driven by can"""
 
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
     can_list = can_capnp_to_list(can_strs)
 
     # Update carState from CAN
-    CS, CS_AC = self.CI.update(can_list)
+    CS, CS_SP, CS_AC = self.CI.update(can_list)
+    CS_SP = convert_to_capnp(CS_SP)
     if self.CP.brand == 'mock':
-      CS = self.mock_carstate.update(CS)
+      CS, CS_SP = self.mock_carstate.update(CS, CS_SP)
 
     # Update radar tracks from CAN
     RD: structs.RadarDataT | None = self.RI.update(can_list)
@@ -239,9 +235,9 @@ class Car:
     CS.vCruise = float(self.v_cruise_helper.v_cruise_kph)
     CS.vCruiseCluster = float(self.v_cruise_helper.v_cruise_cluster_kph)
 
-    return CS, CS_AC, RD
+    return CS, CS_SP, CS_AC, RD
 
-  def state_publish(self, CS: car.CarState, CS_AC: structs.CarStateAC, RD: structs.RadarDataT | None):
+  def state_publish(self, CS: car.CarState, CS_SP: custom.CarStateSP, CS_AC: structs.CarStateAC, RD: structs.RadarDataT | None):
     """carState and carParams publish loop"""
 
     # carParams - logged every 50 seconds (> 1 per segment)
@@ -283,6 +279,11 @@ class Car:
       cp_sp_send.carParamsSP = self.CP_SP_capnp
       self.pm.send('carParamsSP', cp_sp_send)
 
+    cs_sp_send = messaging.new_message('carStateSP')
+    cs_sp_send.valid = CS.canValid
+    cs_sp_send.carStateSP = CS_SP
+    self.pm.send('carStateSP', cs_sp_send)
+
   def controls_update(self, CS: car.CarState, CC: car.CarControl, CC_SP: custom.CarControlSP, CC_AC: structs.CarControlAC):
     """control update loop, driven by carControl"""
 
@@ -290,7 +291,6 @@ class Car:
       # Initialize CarInterface, once controls are ready
       # TODO: this can make us miss at least a few cycles when doing an ECU knockout
       self.CI.init(self.CP, self.CP_SP, self.CP_AC, *self.can_callbacks)
-      sunnypilot_interfaces.initialize_car_interface_sp(self.CP, self.CP_SP, self.params, *self.can_callbacks)
       # signal pandad to switch to car safety mode
       self.params.put_bool_nonblocking("ControlsReady", True)
 
@@ -303,9 +303,9 @@ class Car:
       self.CC_prev = CC
 
   def step(self):
-    CS, CS_AC, RD = self.state_update()
+    CS, CS_SP, CS_AC, RD = self.state_update()
 
-    self.state_publish(CS, CS_AC, RD)
+    self.state_publish(CS, CS_SP, CS_AC, RD)
 
     initialized = (not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents']) and
                    self.sm.seen['onroadEvents'])
@@ -314,6 +314,7 @@ class Car:
 
     self.initialized_prev = initialized
     self.CS_prev = CS
+    self.CS_SP_prev = CS_SP
     self.CS_AC_prev = CS_AC
 
   def params_thread(self, evt):
@@ -323,6 +324,7 @@ class Car:
 
       # sunnypilot
       self.dynamic_experimental_control = self.params.get_bool("DynamicExperimentalControl")
+      self.v_cruise_helper.read_custom_set_speed_params()
 
       time.sleep(0.1)
 

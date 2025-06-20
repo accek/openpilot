@@ -5,15 +5,17 @@ from __future__ import annotations
 import base64
 import gzip
 import os
+import ssl
 import threading
 import time
 
 from jsonrpc import dispatcher
+from functools import partial
 from openpilot.common.params import Params
 from openpilot.common.realtime import set_core_affinity
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.athena.athenad import ws_send, jsonrpc_handler, \
-  recv_queue, UploadQueueCache, upload_queue, cur_upload_items, backoff, ws_manage, log_handler
+  recv_queue, UploadQueueCache, upload_queue, cur_upload_items, backoff, ws_manage, log_handler, start_local_proxy_shim
 from websocket import (ABNF, WebSocket, WebSocketException, WebSocketTimeoutException,
                        create_connection)
 
@@ -29,7 +31,8 @@ SUNNYLINK_RECONNECT_TIMEOUT_S = 70  # FYI changing this will also would require 
 DISALLOW_LOG_UPLOAD = threading.Event()
 
 params = Params()
-sunnylink_api = SunnylinkApi(params.get("SunnylinkDongleId", encoding='utf-8'))
+sunnylink_dongle_id = params.get("SunnylinkDongleId", encoding='utf-8')
+sunnylink_api = SunnylinkApi(sunnylink_dongle_id)
 
 
 def handle_long_poll(ws: WebSocket, exit_event: threading.Event | None) -> None:
@@ -48,7 +51,7 @@ def handle_long_poll(ws: WebSocket, exit_event: threading.Event | None) -> None:
               # threading.Thread(target=sunny_log_handler, args=(end_event, comma_prime_cellular_end_event), name='log_handler'),
               # threading.Thread(target=stat_handler, args=(end_event,), name='stat_handler'),
             ] + [
-              threading.Thread(target=jsonrpc_handler, args=(end_event,), name=f'worker_{x}')
+              threading.Thread(target=jsonrpc_handler, args=(end_event, partial(startLocalProxy, end_event),), name=f'worker_{x}')
               for x in range(HANDLER_THREADS)
             ]
 
@@ -199,6 +202,18 @@ def saveParams(params_to_update: dict[str, str], compression: bool = False) -> N
       cloudlog.error(f"sunnylinkd.saveParams.exception {e}")
 
 
+def startLocalProxy(global_end_event: threading.Event, remote_ws_uri: str, local_port: int) -> dict[str, int]:
+  cloudlog.debug("athena.startLocalProxy.starting")
+  ws = create_connection(
+    remote_ws_uri,
+    header={"Authorization": f"Bearer {sunnylink_api.get_token()}"},
+    enable_multithread=True,
+    sslopt={"cert_reqs": ssl.CERT_NONE}
+  )
+
+  return start_local_proxy_shim(global_end_event, local_port, ws)
+
+
 def main(exit_event: threading.Event = None):
   try:
     set_core_affinity([0, 1, 2, 3])
@@ -211,7 +226,7 @@ def main(exit_event: threading.Event = None):
 
   UploadQueueCache.initialize(upload_queue)
 
-  ws_uri = SUNNYLINK_ATHENA_HOST
+  ws_uri = f"{SUNNYLINK_ATHENA_HOST}"
   conn_start = None
   conn_retries = 0
   while (exit_event is None or not exit_event.is_set()) and sunnylink_ready(params):
@@ -222,8 +237,9 @@ def main(exit_event: threading.Event = None):
       cloudlog.event("sunnylinkd.main.connecting_ws", ws_uri=ws_uri, retries=conn_retries)
       ws = create_connection(
         ws_uri,
-        cookie=f"jwt={sunnylink_api.get_token()}",
+        header={"Authorization": f"Bearer {sunnylink_api.get_token()}"},
         enable_multithread=True,
+        sslopt={"cert_reqs": ssl.CERT_NONE if "localhost" in ws_uri else ssl.CERT_REQUIRED},
         timeout=SUNNYLINK_RECONNECT_TIMEOUT_S,
       )
       cloudlog.event("sunnylinkd.main.connected_ws", ws_uri=ws_uri, retries=conn_retries,

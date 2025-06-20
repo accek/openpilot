@@ -17,7 +17,7 @@ import time
 import gzip
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
-from functools import partial
+from functools import partial, total_ordering
 from queue import Queue
 from typing import cast
 from collections.abc import Callable
@@ -54,6 +54,7 @@ MAX_RETRY_COUNT = 30  # Try for at most 5 minutes if upload fails immediately
 MAX_AGE = 31 * 24 * 3600  # seconds
 WS_FRAME_SIZE = 4096
 DEVICE_STATE_UPDATE_INTERVAL = 1.0  # in seconds
+DEFAULT_UPLOAD_PRIORITY = 99  # higher number = lower priority
 
 NetworkType = log.DeviceState.NetworkType
 
@@ -69,13 +70,15 @@ class UploadFile:
   url: str
   headers: dict[str, str]
   allow_cellular: bool
+  priority: int = DEFAULT_UPLOAD_PRIORITY
 
   @classmethod
   def from_dict(cls, d: dict) -> UploadFile:
-    return cls(d.get("fn", ""), d.get("url", ""), d.get("headers", {}), d.get("allow_cellular", False))
+    return cls(d.get("fn", ""), d.get("url", ""), d.get("headers", {}), d.get("allow_cellular", False), d.get("priority", DEFAULT_UPLOAD_PRIORITY))
 
 
 @dataclass
+@total_ordering
 class UploadItem:
   path: str
   url: str
@@ -86,17 +89,28 @@ class UploadItem:
   current: bool = False
   progress: float = 0
   allow_cellular: bool = False
+  priority: int = DEFAULT_UPLOAD_PRIORITY
 
   @classmethod
   def from_dict(cls, d: dict) -> UploadItem:
     return cls(d["path"], d["url"], d["headers"], d["created_at"], d["id"], d["retry_count"], d["current"],
-               d["progress"], d["allow_cellular"])
+               d["progress"], d["allow_cellular"], d["priority"])
+
+  def __lt__(self, other):
+    if not isinstance(other, UploadItem):
+      return NotImplemented
+    return self.priority < other.priority
+
+  def __eq__(self, other):
+    if not isinstance(other, UploadItem):
+      return NotImplemented
+    return self.priority == other.priority
 
 
 dispatcher["echo"] = lambda s: s
 recv_queue: Queue[str] = queue.Queue()
 send_queue: Queue[str] = queue.Queue()
-upload_queue: Queue[UploadItem] = queue.Queue()
+upload_queue: Queue[UploadItem] = queue.PriorityQueue()
 low_priority_send_queue: Queue[str] = queue.Queue()
 log_recv_queue: Queue[str] = queue.Queue()
 cancelled_uploads: set[str] = set()
@@ -170,8 +184,8 @@ def handle_long_poll(ws: WebSocket, exit_event: threading.Event | None) -> None:
       thread.join()
 
 
-def jsonrpc_handler(end_event: threading.Event) -> None:
-  dispatcher["startLocalProxy"] = partial(startLocalProxy, end_event)
+def jsonrpc_handler(end_event: threading.Event, localProxyHandler = None) -> None:
+  dispatcher["startLocalProxy"] = localProxyHandler or partial(startLocalProxy, end_event)
   while not end_event.is_set():
     try:
       data = recv_queue.get(timeout=1)
@@ -413,6 +427,7 @@ def uploadFilesToUrls(files_data: list[UploadFileDict]) -> UploadFilesToUrlRespo
       created_at=int(time.time() * 1000),
       id=None,
       allow_cellular=file.allow_cellular,
+      priority=file.priority,
     )
     upload_id = hashlib.sha1(str(item).encode()).hexdigest()
     item = replace(item, id=upload_id)
@@ -465,21 +480,25 @@ def setRouteViewed(route: str) -> dict[str, int | str]:
 
 
 def startLocalProxy(global_end_event: threading.Event, remote_ws_uri: str, local_port: int) -> dict[str, int]:
+  cloudlog.debug("athena.startLocalProxy.starting")
+  dongle_id = Params().get("DongleId").decode('utf8')
+  identity_token = Api(dongle_id).get_token()
+  ws = create_connection(remote_ws_uri, cookie="jwt=" + identity_token, enable_multithread=True)
+
+  return start_local_proxy_shim(global_end_event, local_port, ws)
+
+
+def start_local_proxy_shim(global_end_event: threading.Event, local_port: int, ws: WebSocket) -> dict[str, int]:
   try:
+    if ws.sock is None:
+      raise Exception("WebSocket is not connected")
+
     # migration, can be removed once 0.9.8 is out for a while
     if local_port == 8022:
       local_port = 22
 
     if local_port not in LOCAL_PORT_WHITELIST:
       raise Exception("Requested local port not whitelisted")
-
-    cloudlog.debug("athena.startLocalProxy.starting")
-
-    dongle_id = Params().get("DongleId").decode('utf8')
-    identity_token = Api(dongle_id).get_token()
-    ws = create_connection(remote_ws_uri,
-                           cookie="jwt=" + identity_token,
-                           enable_multithread=True)
 
     # Set TOS to keep connection responsive while under load.
     # DSCP of 36/HDD_LINUX_AC_VI with the minimum delay flag
@@ -546,7 +565,7 @@ def getNetworks():
 
 @dispatcher.add_method
 def takeSnapshot() -> str | dict[str, str] | None:
-  from openpilot.system.camerad.snapshot.snapshot import jpeg_write, snapshot
+  from openpilot.system.camerad.snapshot import jpeg_write, snapshot
   ret = snapshot()
   if ret is not None:
     def b64jpeg(x):
@@ -826,15 +845,15 @@ def ws_manage(ws: WebSocket, end_event: threading.Event) -> None:
       onroad_prev = onroad
 
       if sock is not None:
-        if sys.platform == 'darwin':  # macOS
-          sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-          sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 7 if onroad else 30)
-        else:
-          # While not sending data, onroad, we can expect to time out in 7 + (7 * 2) = 21s
-          #                         offroad, we can expect to time out in 30 + (10 * 3) = 60s
-          # FIXME: TCP_USER_TIMEOUT is effectively 2x for some reason (32s), so it's mostly unused
+        # While not sending data, onroad, we can expect to time out in 7 + (7 * 2) = 21s
+        #                         offroad, we can expect to time out in 30 + (10 * 3) = 60s
+        # FIXME: TCP_USER_TIMEOUT is effectively 2x for some reason (32s), so it's mostly unused
+        if sys.platform == 'linux':
           sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_USER_TIMEOUT, 16000 if onroad else 0)
           sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 7 if onroad else 30)
+        elif sys.platform == 'darwin':
+          sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+          sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 7 if onroad else 30)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 7 if onroad else 10)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 2 if onroad else 3)
 

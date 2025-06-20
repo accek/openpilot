@@ -31,11 +31,11 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(longManeuverToggle);
 
   experimentalLongitudinalToggle = new ParamControl(
-    "ExperimentalLongitudinalEnabled",
+    "AlphaLongitudinalEnabled",
     tr("openpilot Longitudinal Control (Alpha)"),
     QString("<b>%1</b><br><br>%2")
       .arg(tr("WARNING: openpilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB)."))
-      .arg(tr("On this car, openpilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. "
+      .arg(tr("On this car, sunnypilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. "
               "Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.")),
     ""
   );
@@ -45,20 +45,16 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   });
   addItem(experimentalLongitudinalToggle);
 
-  // TODO-SP: Move to Vehicles panel when ported back
-  hyundaiRadarTracksToggle = new ParamControl(
-    "HyundaiRadarTracksToggle",
-    tr("Hyundai: Enable Radar Tracks"),
-    tr("Enable this to attempt to enable radar tracks for Hyundai, Kia, and Genesis models equipped with the supported Mando SCC radar. "
-       "This allows sunnypilot to use radar data for improved lead tracking and overall longitudinal performance."), "");
-  hyundaiRadarTracksToggle->setConfirmation(true, false);
-  QObject::connect(hyundaiRadarTracksToggle, &ParamControl::toggleFlipped, [=](bool state) {
-    updateToggles(offroad);
-  });
-  addItem(hyundaiRadarTracksToggle);
-
-  auto enableGithubRunner = new ParamControl("EnableGithubRunner", tr("Enable GitHub runner service"), tr("Enables or disables the github runner service."), "");
+  enableGithubRunner = new ParamControl("EnableGithubRunner", tr("Enable GitHub runner service"), tr("Enables or disables the github runner service."), "");
   addItem(enableGithubRunner);
+
+  // error log button
+  errorLogBtn = new ButtonControl(tr("Error Log"), tr("VIEW"), tr("View the error log for sunnypilot crashes."));
+  connect(errorLogBtn, &ButtonControl::clicked, [=]() {
+    std::string txt = util::read_file("/data/community/crashes/error.log");
+    ConfirmationDialog::rich(QString::fromStdString(txt), this);
+  });
+  addItem(errorLogBtn);
 
   // Joystick and longitudinal maneuvers should be hidden on release branches
   is_release = params.getBool("IsReleaseBranch");
@@ -88,11 +84,8 @@ void DeveloperPanel::updateToggles(bool _offroad) {
     capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
     cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
 
-    auto hyundai = CP.getBrand() == "hyundai";
-    auto hyundai_mando_radar = hyundai && (CP.getFlags() & 4096);
-
-    if (!CP.getExperimentalLongitudinalAvailable() || is_release) {
-      params.remove("ExperimentalLongitudinalEnabled");
+    if (!CP.getAlphaLongitudinalAvailable() || is_release) {
+      params.remove("AlphaLongitudinalEnabled");
       experimentalLongitudinalToggle->setEnabled(false);
     }
 
@@ -101,16 +94,19 @@ void DeveloperPanel::updateToggles(bool _offroad) {
      * - is not a release branch, and
      * - the car supports experimental longitudinal control (alpha)
      */
-    experimentalLongitudinalToggle->setVisible(CP.getExperimentalLongitudinalAvailable() && !is_release);
+    experimentalLongitudinalToggle->setVisible(CP.getAlphaLongitudinalAvailable() && !is_release);
 
     longManeuverToggle->setEnabled(hasLongitudinalControl(CP) && _offroad);
-    hyundaiRadarTracksToggle->setVisible(hyundai_mando_radar && hasLongitudinalControl(CP));
   } else {
     longManeuverToggle->setEnabled(false);
     experimentalLongitudinalToggle->setVisible(false);
-    hyundaiRadarTracksToggle->setVisible(false);
   }
   experimentalLongitudinalToggle->refresh();
+
+  // Handle specific controls visibility for release branches
+  enableGithubRunner->setVisible(!is_release);
+  errorLogBtn->setVisible(!is_release);
+  joystickToggle->setVisible(!is_release);
 
   offroad = _offroad;
 }

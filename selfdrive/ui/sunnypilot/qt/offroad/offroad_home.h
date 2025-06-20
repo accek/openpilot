@@ -8,6 +8,7 @@
 #pragma once
 
 #include "selfdrive/ui/qt/offroad/offroad_home.h"
+#include "selfdrive/ui/sunnypilot/qt/offroad/exit_offroad_button.h"
 
 class OffroadHomeSP : public OffroadHome {
   Q_OBJECT
@@ -16,6 +17,14 @@ public:
   void addPresetsWidget();
 
   explicit OffroadHomeSP(QWidget *parent = 0);
+
+private:
+  ExitOffroadButton *btn_exit_offroad;
+  QPushButton *offroad_notif;
+  Params params;
+
+  void showEvent(QShowEvent *event) override;
+  void refreshOffroadStatus();
   void refresh() override;
 
 protected:
