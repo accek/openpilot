@@ -12,7 +12,7 @@ from cereal import log, custom
 from opendbc.car import structs
 from opendbc.car.hyundai.values import HyundaiFlags
 from openpilot.common.params import Params
-from openpilot.common.conversions import Conversions as CV
+from openpilot.common.constants import CV
 from openpilot.sunnypilot.mads.helpers import MadsSteeringModeOnBrake, read_steering_mode_param, get_mads_limited_brands, read_speed_param
 from openpilot.sunnypilot.mads.state import StateMachine
 

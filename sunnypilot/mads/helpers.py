@@ -8,7 +8,7 @@ See the LICENSE.md file in the root directory for more details.
 from typing import Optional
 
 from openpilot.common.params import Params
-from openpilot.common.conversions import Conversions as CV
+from openpilot.common.constants import CV
 
 from opendbc.car import structs
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
