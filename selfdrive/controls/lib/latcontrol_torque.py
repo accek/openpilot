@@ -93,9 +93,8 @@ class LatControlTorque(LatControl):
       max_predicted_torque = 0.0
       model_good = model_data is not None and len(model_data.orientation.x) >= CONTROL_N
       if model_good:
-        max_predicted_lateral_accel = np.max(np.abs(np.array(model_data.acceleration.y) * (np.array(model_data.acceleration.t) <= self.saturation_prediction_time)))
-        max_predicted_torque = self.torque_from_lateral_accel(LatControlInputs(max_predicted_lateral_accel - roll_compensation, roll_compensation, CS.vEgo, CS.aEgo),
-                                                              self.torque_params, 0.0, lateral_accel_deadzone, friction_compensation=False, gravity_adjusted=True)
+        max_predicted_lateral_accel = np.max(np.abs(np.array(model_data.acceleration.y) * (np.array(model_data.acceleration.t) <= self.saturation_prediction_time) - roll_compensation))
+        max_predicted_torque = self.torque_from_lateral_accel(max_predicted_lateral_accel, self.torque_params)
 
       pid_log.active = True
       pid_log.p = float(self.pid.p)
