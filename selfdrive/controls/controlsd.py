@@ -45,7 +45,7 @@ class Controls(ControlsExt):
     self.sm = messaging.SubMaster(['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'lateralManeuverPlan', 'carState', 'carOutput',
                                    'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'liveDelay'] + self.sm_services_ext +
-                                  ['onroadEventsAC'],
+                                  ['onroadEventsAC', 'driverAssistanceAC'],
                                   poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'] + self.pm_services_ext + ['carControlAC', 'controlsStateAC'])
 
@@ -199,8 +199,13 @@ class Controls(ControlsExt):
     hudControl.leadDistanceBars = self.sm['selfdriveState'].personality.raw + 1
     hudControl.visualAlert = self.sm['selfdriveState'].alertHudVisual
 
-    hudControl.rightLaneVisible = True
-    hudControl.leftLaneVisible = True
+    # ACSPilot: use model-reported lane visibility for the HUD (falls back to True until driverAssistanceAC is valid)
+    if self.sm.valid['driverAssistanceAC']:
+      hudControl.leftLaneVisible = self.sm['driverAssistanceAC'].leftLaneVisible
+      hudControl.rightLaneVisible = self.sm['driverAssistanceAC'].rightLaneVisible
+    else:
+      hudControl.rightLaneVisible = True
+      hudControl.leftLaneVisible = True
     if self.sm.valid['driverAssistance']:
       hudControl.leftLaneDepart = self.sm['driverAssistance'].leftLaneDeparture
       hudControl.rightLaneDepart = self.sm['driverAssistance'].rightLaneDeparture

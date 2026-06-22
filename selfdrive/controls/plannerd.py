@@ -25,7 +25,7 @@ def main():
 
   ldw = LaneDepartureWarning()
   longitudinal_planner = LongitudinalPlanner(CP, CP_SP)
-  pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'longitudinalPlanSP'])
+  pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'driverAssistanceAC', 'longitudinalPlanSP'])
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
                             'liveMapDataSP', 'carStateSP', gps_location_service],
                            poll='carState')
@@ -43,6 +43,13 @@ def main():
       msg.driverAssistance.leftLaneDeparture = ldw.left
       msg.driverAssistance.rightLaneDeparture = ldw.right
       pm.send('driverAssistance', msg)
+
+      # ACSPilot: publish lane-line visibility for the HUD
+      msg_ac = messaging.new_message('driverAssistanceAC')
+      msg_ac.valid = sm.all_checks(['carState', 'carControl', 'modelV2', 'liveParameters'])
+      msg_ac.driverAssistanceAC.leftLaneVisible = ldw.left_lane_visible
+      msg_ac.driverAssistanceAC.rightLaneVisible = ldw.right_lane_visible
+      pm.send('driverAssistanceAC', msg_ac)
 
 
 if __name__ == "__main__":
