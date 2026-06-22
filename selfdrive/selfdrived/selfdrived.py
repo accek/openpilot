@@ -54,6 +54,14 @@ TurnDirection = custom.ModelDataV2SP.TurnDirection
 IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
 
 
+def override_by_stock_acc_only(state, active_event_types) -> bool:
+  # ACSPilot: the car is overriding by stock ACC only (longitudinal) when openpilot is in the overriding
+  # state but neither a lateral nor a longitudinal openpilot override event is active. Used so the HUD
+  # does not grey out the display while the stock ACC keeps controlling longitudinal.
+  return state == State.overriding and \
+    ET.OVERRIDE_LATERAL not in active_event_types and ET.OVERRIDE_LONGITUDINAL not in active_event_types
+
+
 class SelfdriveD(CruiseHelper):
   def __init__(self, CP=None, CP_SP=None, CP_AC=None):
     self.params = Params()
@@ -620,9 +628,7 @@ class SelfdriveD(CruiseHelper):
     ss_ac_msg = messaging.new_message('selfdriveStateAC')
     ss_ac_msg.valid = True
     ss_ac = ss_ac_msg.selfdriveStateAC
-    if self.state_machine.state == State.overriding:
-      active_event_types = self.events.get_event_types()
-      ss_ac.overrideByStockAccOnly = ET.OVERRIDE_LATERAL not in active_event_types and ET.OVERRIDE_LONGITUDINAL not in active_event_types
+    ss_ac.overrideByStockAccOnly = override_by_stock_acc_only(self.state_machine.state, self.events.get_event_types())
     self.pm.send('selfdriveStateAC', ss_ac_msg)
 
     # onroadEventsSP - logged every second or on change
