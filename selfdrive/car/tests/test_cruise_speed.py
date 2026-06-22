@@ -152,3 +152,48 @@ class TestVCruiseHelper:
           self.enable(float(v_ego), experimental_mode, dynamic_experimental_control)
           assert V_CRUISE_INITIAL <= self.v_cruise_helper.v_cruise_kph <= V_CRUISE_MAX
           assert self.v_cruise_helper.v_cruise_initialized
+
+
+class TestVCruiseHelperAC:
+  # ACSPilot: VCruiseHelper takes a CarParamsAC and adds cruise-control extensions configured by it:
+  #  - SET button sets the cruise speed to the current vEgo
+  #  - accelButtonResumesCruise: treat ACCEL like RESUME at standstill (don't bump set speed)
+  #  - decelButtonLimitedToVEgoWhenOverriding: only clip DECEL up to vEgo while overriding when enabled
+  def _helper(self, **ac_kwargs):
+    CP = car.CarParams(pcmCruise=False)
+    CP_SP = custom.CarParamsSP(pcmCruiseSpeed=True)
+    CP_AC = car_custom.CarParamsAC.new_message(**ac_kwargs)
+    helper = VCruiseHelper(CP, CP_SP, CP_AC)
+    for _ in range(2):  # two resets clear previous cruise speed (mirrors TestVCruiseHelper)
+      helper.update_v_cruise(car.CarState(cruiseState={"available": False}), enabled=False, is_metric=False)
+    return helper
+
+  @staticmethod
+  def _press_release(helper, btn, v_ego=0.0, gas=False, standstill=False):
+    for pressed in (True, False):
+      CS = car.CarState(cruiseState={"available": True, "standstill": standstill}, vEgo=float(v_ego), gasPressed=gas)
+      CS.buttonEvents = [ButtonEvent(type=btn, pressed=pressed)]
+      helper.update_v_cruise(CS, enabled=True, is_metric=False)
+
+  def test_set_button_sets_cruise_to_vego(self):
+    helper = self._helper()
+    helper.initialize_v_cruise(car.CarState(vEgo=10.0), False, False)
+    self._press_release(helper, ButtonType.setCruise, v_ego=20.0)
+    assert helper.v_cruise_kph == pytest.approx(20.0 * CV.MS_TO_KPH, abs=0.5)
+
+  def test_resume_buttons_reflects_accel_resumes_flag(self):
+    # accelButtonResumesCruise adds RESUME to the set of buttons that silently exit standstill;
+    # ACCEL is always in that set (stock behavior)
+    on = self._helper(accelButtonResumesCruise=True).resume_buttons
+    off = self._helper(accelButtonResumesCruise=False).resume_buttons
+    assert ButtonType.accelCruise in on and ButtonType.accelCruise in off
+    assert ButtonType.resumeCruise in on
+    assert ButtonType.resumeCruise not in off
+
+  @pytest.mark.parametrize("limited, expect_clipped_to_vego", [(True, True), (False, False)])
+  def test_decel_overriding_clip_gated_by_flag(self, limited, expect_clipped_to_vego):
+    helper = self._helper(decelButtonLimitedToVEgoWhenOverriding=limited)
+    helper.initialize_v_cruise(car.CarState(vEgo=5.0), False, False)
+    self._press_release(helper, ButtonType.decelCruise, v_ego=20.0, gas=True)
+    clipped = helper.v_cruise_kph >= 20.0 * CV.MS_TO_KPH - 0.5
+    assert clipped == expect_clipped_to_vego
