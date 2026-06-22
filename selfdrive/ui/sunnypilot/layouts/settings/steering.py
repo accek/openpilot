@@ -96,6 +96,12 @@ class SteeringLayout(Widget):
       title=lambda: tr("Neural Network Lateral Control (NNLC)"),
       description=""
     )
+    # ACSPilot: prefer torque tune over PID for the lateral tune (applies on supported platforms)
+    self._prefer_torque_tune_toggle = toggle_item_sp(
+      param="PreferTorqueTune",
+      title=lambda: tr("Prefer Torque Tune for Lateral"),
+      description=lambda: tr("If enabled, the device will prefer torque tune over PID-based for steering control."),
+    )
 
     items = [
       self._mads_toggle,
@@ -111,6 +117,7 @@ class SteeringLayout(Widget):
       self._torque_customization_button,
       LineSeparatorSP(40),
       self._nnlc_toggle,
+      self._prefer_torque_tune_toggle,
     ]
     return items
 
@@ -137,6 +144,7 @@ class SteeringLayout(Widget):
     self._nnlc_toggle.action_item.set_enabled(ui_state.is_offroad() and torque_allowed and not enforce_torque_enabled)
     self._torque_control_toggle.action_item.set_enabled(ui_state.is_offroad() and torque_allowed and not nnlc_enabled)
     self._torque_customization_button.action_item.set_enabled(self._torque_control_toggle.action_item.get_state())
+    self._prefer_torque_tune_toggle.action_item.set_enabled(ui_state.is_offroad())  # ACSPilot: needs restart
 
   def _render(self, rect):
     if self._current_panel == PanelType.LANE_CHANGE:

@@ -112,7 +112,8 @@ class Car:
       init_params_list_sp = sunnypilot_interfaces.initialize_params(self.params)
 
       self.CI = get_car(*self.can_callbacks, obd_callback(self.params), alpha_long_allowed, is_release, cached_params,
-                        fixed_fingerprint, init_params_list_sp, is_release_sp)
+                        fixed_fingerprint, init_params_list_sp, is_release_sp,
+                        prefer_torque_tune=self.params.get_bool("PreferTorqueTune"))  # ACSPilot
       sunnypilot_interfaces.setup_interfaces(self.CI, self.params)
       self.RI = interfaces[self.CI.CP.carFingerprint].RadarInterface(self.CI.CP, self.CI.CP_SP)
       self.CP = self.CI.CP
