@@ -10,6 +10,12 @@ class LatControl(ABC):
     self.sat_time = 0.
     self.sat_check_min_speed = 10.
 
+    # ACSPilot: early "approaching saturation" warning, triggered before full
+    # saturation (steerSaturating onroad event). Uses half the saturation timer.
+    self.sat_warning_limit = CP.steerLimitTimer / 2.
+    self.sat_warning_time = 0.
+    self.saturating = False
+
     # we define the steer torque scale as [-1.0...1.0]
     self.steer_max = 1.0
 
@@ -20,6 +26,8 @@ class LatControl(ABC):
 
   def reset(self):
     self.sat_time = 0.
+    self.sat_warning_time = 0.
+    self.saturating = False
 
   def _check_saturation(self, saturated, CS, steer_limited_by_safety, curvature_limited):
     # Saturated only if control output is not being limited by car torque/angle rate limits
@@ -29,3 +37,14 @@ class LatControl(ABC):
       self.sat_time -= self.dt
     self.sat_time = np.clip(self.sat_time, 0.0, self.sat_limit)
     return self.sat_time > (self.sat_limit - 1e-3)
+
+  def _check_saturating(self, saturating, CS):
+    # ACSPilot: pre-warning that lateral control is approaching saturation.
+    # Unlike _check_saturation, this ignores carOutput-based limiting so the
+    # driver is warned even while the actuator is being rate/torque limited.
+    if saturating and CS.vEgo > self.sat_check_min_speed and not CS.steeringPressed:
+      self.sat_warning_time += self.dt
+    else:
+      self.sat_warning_time -= self.dt
+    self.sat_warning_time = np.clip(self.sat_warning_time, 0.0, self.sat_warning_limit)
+    return bool(self.sat_warning_time > (self.sat_warning_limit - 1e-3))

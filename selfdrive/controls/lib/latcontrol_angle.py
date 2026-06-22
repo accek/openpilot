@@ -34,4 +34,8 @@ class LatControlAngle(LatControl):
     angle_log.saturated = bool(self._check_saturation(angle_control_saturated, CS, False, curvature_limited))
     angle_log.steeringAngleDeg = float(CS.steeringAngleDeg)
     angle_log.steeringAngleDesiredDeg = angle_steers_des
+
+    # ACSPilot: warn before reaching the saturation threshold
+    angle_control_saturating = abs(angle_steers_des - CS.steeringAngleDeg) > STEER_ANGLE_SATURATION_THRESHOLD * 0.8
+    self.saturating = self._check_saturating(angle_control_saturating, CS)
     return 0, float(angle_steers_des), angle_log

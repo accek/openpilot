@@ -2,7 +2,7 @@
 import math
 from numbers import Number
 
-from cereal import car, log
+from cereal import car, log, car_custom
 import cereal.messaging as messaging
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
@@ -43,9 +43,10 @@ class Controls(ControlsExt):
 
     self.sm = messaging.SubMaster(['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'lateralManeuverPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'liveDelay'] + self.sm_services_ext,
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'liveDelay'] + self.sm_services_ext +
+                                  ['onroadEventsAC'],
                                   poll='selfdriveState')
-    self.pm = messaging.PubMaster(['carControl', 'controlsState'] + self.pm_services_ext)
+    self.pm = messaging.PubMaster(['carControl', 'controlsState'] + self.pm_services_ext + ['carControlAC', 'controlsStateAC'])
 
     self.steer_limited_by_safety = False
     self.curvature = 0.0
@@ -114,6 +115,7 @@ class Controls(ControlsExt):
     CC.latActive = _lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and \
+                    not any(e.overrideLongitudinal for e in self.sm['onroadEventsAC']) and \
                     (self.CP.openpilotLongitudinalControl or not self.CP_SP.pcmCruiseSpeed)
 
     actuators = CC.actuators
@@ -158,9 +160,12 @@ class Controls(ControlsExt):
         cloudlog.error(f"actuators.{p} not finite {actuators.to_dict()}")
         setattr(actuators, p, 0.0)
 
-    return CC, lac_log
+    # ACSPilot carControl - currently unpopulated, reserved for future use
+    CC_AC = car_custom.CarControlAC.new_message()
 
-  def publish(self, CC, lac_log):
+    return CC, lac_log, CC_AC
+
+  def publish(self, CC, lac_log, CC_AC):
     CS = self.sm['carState']
 
     # Orientation and angle rates can be useful for carcontroller
@@ -225,18 +230,31 @@ class Controls(ControlsExt):
 
     self.pm.send('controlsState', dat)
 
+    # controlsStateAC
+    dat_ac = messaging.new_message('controlsStateAC')
+    dat_ac.valid = CS.canValid
+    cs_ac = dat_ac.controlsStateAC
+    cs_ac.lateralControlState.saturating = bool(self.LaC.saturating)
+    self.pm.send('controlsStateAC', dat_ac)
+
     # carControl
     cc_send = messaging.new_message('carControl')
     cc_send.valid = CS.canValid
     cc_send.carControl = CC
     self.pm.send('carControl', cc_send)
 
+    # carControlAC
+    cc_ac_send = messaging.new_message('carControlAC')
+    cc_ac_send.valid = CS.canValid
+    cc_ac_send.carControlAC = CC_AC
+    self.pm.send('carControlAC', cc_ac_send)
+
   def run(self):
     rk = Ratekeeper(100, print_delay_threshold=None)
     while True:
       self.update()
-      CC, lac_log = self.state_control()
-      self.publish(CC, lac_log)
+      CC, lac_log, CC_AC = self.state_control()
+      self.publish(CC, lac_log, CC_AC)
       self.get_params_sp(self.sm)
       self.run_ext(self.sm, self.pm)
       rk.monitor_time()
