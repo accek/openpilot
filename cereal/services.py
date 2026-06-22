@@ -101,6 +101,14 @@ _services: dict[str, tuple] = {
   "carStateSP": (True, 100., 10),
   "liveMapDataSP": (True, 1., 1),
   "modelDataV2SP": (True, 20., None, QueueSize.BIG),
+
+  # ACSPilot
+  "carParamsAC": (True, 0.02, 1),
+  "carStateAC": (True, 100., 10),
+  "carControlAC": (True, 100., 10),
+  "driverAssistanceAC": (True, 20., 20),
+  "onroadEventsAC": (True, 1., 1),
+  "controlsStateAC": (True, 100., 10),
   "liveLocationKalman": (True, 20.),
 
   # debug

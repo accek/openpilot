@@ -462,22 +462,42 @@ struct CustomReserved10 @0xcb9fd56c7057593a {
 struct CustomReserved11 @0xc2243c65e0340384 {
 }
 
-struct CustomReserved12 @0x9ccdc8676701b412 {
+# NOTE: node IDs 0x9ccdc8676701b412 (CarStateAC), 0xcd96dafb67a082d0 (CarParamsAC),
+# and 0xb057204d7deadf3f (CarControlAC) are now owned by opendbc car_custom.capnp.
+
+struct DriverAssistanceAC @0xbd443b539493bc68 {
+  leftLaneVisible @0 :Bool = true;
+  rightLaneVisible @1 :Bool = true;
 }
 
-struct CustomReserved13 @0xcd96dafb67a082d0 {
+struct OnroadEventAC @0xfc6241ed8877b611 {
+  name @0 :EventName;
+
+  # event types
+  enable @1 :Bool;
+  noEntry @2 :Bool;
+  warning @3 :Bool;   # alerts presented only when  enabled or soft disabling
+  userDisable @4 :Bool;
+  softDisable @5 :Bool;
+  immediateDisable @6 :Bool;
+  preEnable @7 :Bool;
+  permanent @8 :Bool; # alerts presented regardless of openpilot state
+  overrideLateral @10 :Bool;
+  overrideLongitudinal @9 :Bool;
+
+  enum EventName {
+    steerSaturating @0;
+    stockAccOverride @1;
+    accFaultedTemporary @2;
+  }
 }
 
-struct CustomReserved14 @0xb057204d7deadf3f {
-}
+struct ControlsStateAC @0xa30662f84033036c {
+  lateralControlState @0 :LateralControlState;
 
-struct CustomReserved15 @0xbd443b539493bc68 {
-}
-
-struct CustomReserved16 @0xfc6241ed8877b611 {
-}
-
-struct CustomReserved17 @0xa30662f84033036c {
+  struct LateralControlState {
+    saturating @0 :Bool;
+  }
 }
 
 struct CustomReserved18 @0xc86a3d38d13eb3ef {

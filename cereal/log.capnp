@@ -2,6 +2,7 @@ using Cxx = import "./include/c++.capnp";
 $Cxx.namespace("cereal");
 
 using Car = import "car.capnp";
+using CarCustom = import "car_custom.capnp";
 using Deprecated = import "deprecated.capnp";
 using Custom = import "custom.capnp";
 
@@ -2495,12 +2496,12 @@ struct Event {
     modelDataV2SP @116 :Custom.ModelDataV2SP;
     customReserved10 @136 :Custom.CustomReserved10;
     customReserved11 @137 :Custom.CustomReserved11;
-    customReserved12 @138 :Custom.CustomReserved12;
-    customReserved13 @139 :Custom.CustomReserved13;
-    customReserved14 @140 :Custom.CustomReserved14;
-    customReserved15 @141 :Custom.CustomReserved15;
-    customReserved16 @142 :Custom.CustomReserved16;
-    customReserved17 @143 :Custom.CustomReserved17;
+    carStateAC @138 :CarCustom.CarStateAC;
+    carParamsAC @139 :CarCustom.CarParamsAC;
+    carControlAC @140 :CarCustom.CarControlAC;
+    driverAssistanceAC @141 :Custom.DriverAssistanceAC;
+    onroadEventsAC @142 :List(Custom.OnroadEventAC);
+    controlsStateAC @143 :Custom.ControlsStateAC;
     customReserved18 @144 :Custom.CustomReserved18;
     customReserved19 @145 :Custom.CustomReserved19;
 
