@@ -133,8 +133,11 @@ class UIState(UIStateSP):
     elif self.sm.frame - self.sm.recv_frame["pandaStates"] > 5 * rl.get_fps():
       self.panda_type = log.PandaState.PandaType.unknown
 
+    # ACSPilot: prefer the car-reported screen brightness (e.g. VW Dimmung) over the camera light sensor
+    if self.sm.updated["carStateAC"] and self.sm["carStateAC"].screenBrightness > 0:
+      self.light_sensor = 100.0 * min(1.0, self.sm["carStateAC"].screenBrightness)
     # Handle wide road camera state updates
-    if self.sm.updated["wideRoadCameraState"]:
+    elif self.sm.updated["wideRoadCameraState"]:
       cam_state = self.sm["wideRoadCameraState"]
       self.light_sensor = max(100.0 - cam_state.exposureValPercent, 0.0)
     elif not self.sm.alive["wideRoadCameraState"] or not self.sm.valid["wideRoadCameraState"]:
