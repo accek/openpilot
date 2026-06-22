@@ -95,3 +95,8 @@ SKILL.md
 !.idea/customTargets.xml
 !.idea/tools/*
 !.run/*
+
+# Accek's work tree
+/realdata/
+/segments/
+.last_build
