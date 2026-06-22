@@ -147,6 +147,14 @@ class AdvancedNetworkSettings(Widget):
     wifi_metered_btn = ListItem(lambda: tr("Wi-Fi Network Metered"), description=lambda: tr("Prevent large data uploads when on a metered Wi-Fi connection"),
                                 action_item=self._wifi_metered_action)
 
+    # ACSPilot: allow uploads/updates even on a metered connection
+    self._upload_on_metered_action = ToggleAction(initial_state=self._params.get_bool("UploadOnMetered"))
+    upload_on_metered_btn = ListItem(lambda: tr("Upload on Metered"), description=lambda: tr("Upload logs even if on a metered connection"),
+                                     action_item=self._upload_on_metered_action, callback=self._toggle_upload_on_metered)
+    self._update_on_metered_action = ToggleAction(initial_state=self._params.get_bool("UpdateOnMetered"))
+    update_on_metered_btn = ListItem(lambda: tr("Update on Metered"), description=lambda: tr("Update even if on a metered connection"),
+                                     action_item=self._update_on_metered_action, callback=self._toggle_update_on_metered)
+
     items: list[Widget] = [
       tethering_btn,
       tethering_password_btn,
@@ -155,6 +163,8 @@ class AdvancedNetworkSettings(Widget):
       self._apn_btn,
       self._cellular_metered_btn,
       wifi_metered_btn,
+      upload_on_metered_btn,
+      update_on_metered_btn,
       button_item(lambda: tr("Hidden Network"), lambda: tr("CONNECT"), callback=self._connect_to_hidden_network),
     ]
 
@@ -213,6 +223,12 @@ class AdvancedNetworkSettings(Widget):
     metered = self._cellular_metered_action.get_state()
     self._params.put_bool("GsmMetered", metered)
     self._wifi_manager.update_gsm_settings(self._params.get_bool("GsmRoaming"), self._params.get("GsmApn") or "", metered)
+
+  def _toggle_upload_on_metered(self):
+    self._params.put_bool("UploadOnMetered", self._upload_on_metered_action.get_state())
+
+  def _toggle_update_on_metered(self):
+    self._params.put_bool("UpdateOnMetered", self._update_on_metered_action.get_state())
 
   def _toggle_wifi_metered(self, metered):
     metered_type = {0: MeteredType.UNKNOWN, 1: MeteredType.YES, 2: MeteredType.NO}.get(metered, MeteredType.UNKNOWN)
