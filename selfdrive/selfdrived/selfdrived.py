@@ -5,7 +5,7 @@ import threading
 
 import cereal.messaging as messaging
 
-from cereal import car, log, custom
+from cereal import car, log, custom, car_custom
 from msgq.visionipc import VisionIpcClient, VisionStreamType
 
 
@@ -47,6 +47,7 @@ LaneChangeDirection = log.LaneChangeDirection
 EventName = log.OnroadEvent.EventName
 EventNameAC = custom.OnroadEventAC.EventName
 ButtonType = car.CarState.ButtonEvent.Type
+ButtonTypeAC = car_custom.CarStateAC.ButtonEvent.Type
 SafetyModel = car.CarParams.SafetyModel
 TurnDirection = custom.ModelDataV2SP.TurnDirection
 
@@ -54,7 +55,7 @@ IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
 
 
 class SelfdriveD(CruiseHelper):
-  def __init__(self, CP=None, CP_SP=None):
+  def __init__(self, CP=None, CP_SP=None, CP_AC=None):
     self.params = Params()
 
     # Ensure the current branch is cached, otherwise the first cycle lags
@@ -73,6 +74,13 @@ class SelfdriveD(CruiseHelper):
       cloudlog.info("selfdrived got CarParamsSP")
     else:
       self.CP_SP = CP_SP
+
+    if CP_AC is None:
+      cloudlog.info("selfdrived is waiting for CarParamsAC")
+      self.CP_AC = messaging.log_from_bytes(self.params.get("CarParamsAC", block=True), car_custom.CarParamsAC)
+      cloudlog.info("selfdrived got CarParamsAC")
+    else:
+      self.CP_AC = CP_AC
 
     self.car_events = CarSpecificEvents(self.CP)
 
@@ -179,7 +187,7 @@ class SelfdriveD(CruiseHelper):
 
     self.car_events_sp = CarSpecificEventsSP(self.CP, self.CP_SP)
 
-    CruiseHelper.__init__(self, self.CP)
+    CruiseHelper.__init__(self, self.CP, self.CP_AC)
 
   def update_events(self, CS, CS_AC=None):
     """Compute onroadEvents from carState"""
@@ -466,16 +474,25 @@ class SelfdriveD(CruiseHelper):
     if CS.gearShifter == car.CarState.GearShifter.park and self.mads.enabled:
       self.events.remove(EventName.canBusMissing)
 
-    CruiseHelper.update(self, CS, self.events_sp, self.experimental_mode)
+    CruiseHelper.update(self, CS, CS_AC, self.events_sp, self.experimental_mode)
 
-    # decrement personality on distance button press
+    # decrement personality on distance button press; ACSPilot adds separate
+    # gap up/down buttons (CS_AC) that step the personality in both directions
     if self.CP.openpilotLongitudinalControl:
-      if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
+      personality_delta = 0
+      if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents) or \
+          (CS_AC is not None and any(not be.pressed and be.type == ButtonTypeAC.gapAdjustCruiseDown for be in CS_AC.buttonEvents)):
         if not self.experimental_mode_switched:
-          self.personality = (self.personality - 1) % 3
-          self.params.put_nonblocking('LongitudinalPersonality', self.personality)
-          self.events.add(EventName.personalityChanged)
+          personality_delta = -1
         self.experimental_mode_switched = False
+      if CS_AC is not None and any(not be.pressed and be.type == ButtonTypeAC.gapAdjustCruiseUp for be in CS_AC.buttonEvents):
+        if not self.experimental_mode_switched:
+          personality_delta = 1
+        self.experimental_mode_switched = False
+      if personality_delta != 0:
+        self.personality = (self.personality - personality_delta) % 3
+        self.params.put_nonblocking('LongitudinalPersonality', self.personality)
+        self.events.add(EventName.personalityChanged)
 
     self.icbm.run(CS, self.sm['carControl'], self.sm['longitudinalPlanSP'], self.is_metric)
 

@@ -1,4 +1,4 @@
-from cereal import car
+from cereal import car, car_custom
 from openpilot.common.parameterized import parameterized_class
 from openpilot.selfdrive.selfdrived.events import Events
 from openpilot.sunnypilot.selfdrive.car.cruise_helpers import CruiseHelper, DISTANCE_LONG_PRESS
@@ -11,7 +11,8 @@ ButtonType = car.CarState.ButtonEvent.Type
 class TestCruiseHelper:
   def setup_method(self):
     self.CP = car.CarParams(openpilotLongitudinalControl=self.openpilot_longitudinal)
-    self.cruise_helper = CruiseHelper(self.CP)
+    self.CP_AC = car_custom.CarParamsAC.new_message()
+    self.cruise_helper = CruiseHelper(self.CP, self.CP_AC)
     self.cruise_helper.experimental_mode_switched = False
     self.events = Events()
 
@@ -19,9 +20,10 @@ class TestCruiseHelper:
     for _ in range(2):
       CS = car.CarState(cruiseState={"available": False})
       CS.buttonEvents = [ButtonEvent(type=ButtonType.gapAdjustCruise, pressed=False)]
+      CS_AC = car_custom.CarStateAC.new_message()
       self.cruise_helper._experimental_mode = False
       self.cruise_helper.experimental_mode_switched = False
-      self.cruise_helper.update(CS, self.events, False)
+      self.cruise_helper.update(CS, CS_AC, self.events, False)
 
 
   def test_gap_adjust_cruise_long_press_toggle_mode(self) -> None:
@@ -34,7 +36,7 @@ class TestCruiseHelper:
         for i in range(DISTANCE_LONG_PRESS):
           CS = car.CarState(cruiseState={"available": True})
           CS.buttonEvents = [ButtonEvent(type=ButtonType.gapAdjustCruise, pressed=pressed)] if i == 0 else []
-          self.cruise_helper.update(CS, self.events, experimental_mode)
+          self.cruise_helper.update(CS, car_custom.CarStateAC.new_message(), self.events, experimental_mode)
 
         # mode should be toggled
         assert self.cruise_helper._experimental_mode == toggled_mode
@@ -44,7 +46,7 @@ class TestCruiseHelper:
         for _ in range(DISTANCE_LONG_PRESS):
           CS = car.CarState(cruiseState={"available": True})
           CS.buttonEvents = [ButtonEvent(type=ButtonType.gapAdjustCruise, pressed=pressed)]
-          self.cruise_helper.update(CS, self.events, toggled_mode)
+          self.cruise_helper.update(CS, car_custom.CarStateAC.new_message(), self.events, toggled_mode)
 
         # mode should not be toggled
         assert self.cruise_helper._experimental_mode == toggled_mode
@@ -59,7 +61,7 @@ class TestCruiseHelper:
         for i in range(DISTANCE_LONG_PRESS - 1):
           CS = car.CarState(cruiseState={"available": True})
           CS.buttonEvents = [ButtonEvent(type=ButtonType.gapAdjustCruise, pressed=pressed)] if i == 0 else []
-          self.cruise_helper.update(CS, self.events, experimental_mode)
+          self.cruise_helper.update(CS, car_custom.CarStateAC.new_message(), self.events, experimental_mode)
 
         # mode should not be toggled
         assert self.cruise_helper._experimental_mode == experimental_mode
