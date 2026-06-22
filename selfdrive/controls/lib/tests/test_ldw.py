@@ -1,5 +1,6 @@
 import cereal.messaging as messaging
-from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning, LDW_MIN_SPEED
+from cereal import log
+from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning, LDW_MIN_SPEED, LANE_DEPARTURE_THRESHOLD
 
 
 def _model(left_prob=0.9, right_prob=0.9, with_desire=True):
@@ -54,3 +55,29 @@ class TestLaneDepartureWarning:
     ldw.update(0, _model(), _cs(), _cc())
     assert isinstance(ldw.left_lane_visible, bool)
     assert isinstance(ldw.right_lane_visible, bool)
+
+  def test_visibility_at_probability_boundary(self):
+    # visibility uses a strict prob > 0.5 threshold: exactly 0.5 is not visible, just above is
+    ldw = LaneDepartureWarning()
+    ldw.update(0, _model(left_prob=0.5, right_prob=0.51), _cs(), _cc())
+    assert ldw.left_lane_visible is False
+    assert ldw.right_lane_visible is True
+
+  def test_departure_warning_fires_when_allowed(self):
+    # with the LDW gate open (above min speed, no blinker, lateral inactive), a high lane-change
+    # probability toward a close, visible lane line raises the departure warning
+    desire = [0.0] * len(log.Desire.schema.enumerants)
+    desire[log.Desire.laneChangeLeft] = LANE_DEPARTURE_THRESHOLD + 0.1
+    m = messaging.new_message('modelV2')
+    mv = m.modelV2
+    mv.laneLineProbs = [0.0, 0.9, 0.0, 0.0]
+    mv.meta.desirePrediction = desire
+    lane_lines = mv.init('laneLines', 4)
+    for ll in lane_lines:
+      ll.y = [0.0]
+
+    # frame past the 5s blinker cooldown (last_blinker_frame inits to 0)
+    ldw = LaneDepartureWarning()
+    ldw.update(1000, mv, _cs(v_ego=LDW_MIN_SPEED + 5.0), _cc(lat_active=False))
+    assert ldw.left is True
+    assert ldw.warning is True
