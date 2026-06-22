@@ -12,7 +12,7 @@ from collections.abc import Iterator
 from cereal import log
 import cereal.messaging as messaging
 from openpilot.common.api import Api
-from openpilot.common.utils import get_upload_stream
+from openpilot.common.utils import get_upload_stream, is_metered
 from openpilot.common.params import Params
 from openpilot.common.realtime import set_core_affinity
 from openpilot.system.hardware.hw import Paths
@@ -258,7 +258,7 @@ def main(exit_event: threading.Event | None = None) -> None:
       continue
 
     # ACSPilot: UploadOnMetered force-allows uploads on metered connections (default off keeps native throttling)
-    metered = sm['deviceState'].networkMetered and not params.get_bool("UploadOnMetered")
+    metered = is_metered(sm['deviceState'].networkMetered, params.get_bool("UploadOnMetered"))
     success = uploader.step(sm['deviceState'].networkType.raw, metered)
     if success is None:
       backoff = 60 if offroad else 5

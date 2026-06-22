@@ -15,6 +15,7 @@ from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
 from openpilot.common.time_helpers import system_time_valid
 from openpilot.common.markdown import parse_markdown
+from openpilot.common.utils import is_metered
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
 from openpilot.system.hardware import AGNOS, HARDWARE
@@ -465,7 +466,7 @@ def main() -> None:
         timed_out = last_fetch is None or (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - last_fetch > datetime.timedelta(days=3))
         user_requested_fetch = wait_helper.user_request == UserRequest.FETCH
         # ACSPilot: UpdateOnMetered force-allows update fetches on metered connections (default off keeps native skip)
-        if params.get_bool("NetworkMetered") and not params.get_bool("UpdateOnMetered") and not timed_out and not user_requested_fetch:
+        if is_metered(params.get_bool("NetworkMetered"), params.get_bool("UpdateOnMetered")) and not timed_out and not user_requested_fetch:
           cloudlog.info("skipping fetch, connection metered")
         elif wait_helper.user_request == UserRequest.CHECK:
           cloudlog.info("skipping fetch, only checking")

@@ -10,6 +10,12 @@ import zstandard as zstd
 
 LOG_COMPRESSION_LEVEL = 10  # little benefit up to level 15. level ~17 is a small step change
 
+
+def is_metered(network_metered: bool, allow_override: bool) -> bool:
+  # ACSPilot: treat a connection as metered (i.e. throttle/skip uploads and update fetches) only when the
+  # network reports metered AND the user has not opted in to force-allow on metered connections.
+  return network_metered and not allow_override
+
 class Timer:
   """Simple lap timer for profiling sequential operations."""
 
