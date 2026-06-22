@@ -109,6 +109,7 @@ _services: dict[str, tuple] = {
   "driverAssistanceAC": (True, 20., 20),
   "onroadEventsAC": (True, 1., 1),
   "controlsStateAC": (True, 100., 10),
+  "selfdriveStateAC": (True, 100., 10),
   "liveLocationKalman": (True, 20.),
 
   # debug

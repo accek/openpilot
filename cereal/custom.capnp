@@ -500,7 +500,8 @@ struct ControlsStateAC @0xa30662f84033036c {
   }
 }
 
-struct CustomReserved18 @0xc86a3d38d13eb3ef {
+struct SelfdriveStateAC @0xc86a3d38d13eb3ef {
+  overrideByStockAccOnly @0 :Bool;
 }
 
 struct CustomReserved19 @0xa4f1eb3323f5f582 {

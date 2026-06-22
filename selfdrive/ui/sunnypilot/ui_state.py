@@ -33,7 +33,8 @@ class UIStateSP:
     self.is_sp_release: bool = self.params.get_bool("IsReleaseSpBranch")
     self.sm_services_ext = [
       "modelManagerSP", "selfdriveStateSP", "longitudinalPlanSP", "backupManagerSP",
-      "gpsLocation", "liveTorqueParameters", "carStateSP", "liveMapDataSP", "carParamsSP", "liveDelay"
+      "gpsLocation", "liveTorqueParameters", "carStateSP", "liveMapDataSP", "carParamsSP", "liveDelay",
+      "selfdriveStateAC",  # ACSPilot
     ]
 
     self.sunnylink_state = SunnylinkState()
@@ -86,7 +87,7 @@ class UIStateSP:
     return self.onroad_brightness in (OnroadBrightness.AUTO, OnroadBrightness.AUTO_DARK)
 
   @staticmethod
-  def update_status(ss, ss_sp, onroad_evt) -> str:
+  def update_status(ss, ss_sp, onroad_evt, ss_ac) -> str:
     state = ss.state
     mads = ss_sp.mads
     mads_state = mads.state
@@ -94,7 +95,8 @@ class UIStateSP:
     if state == OpenpilotState.preEnabled:
       return "override"
 
-    if state == OpenpilotState.overriding:
+    # ACSPilot: do not show the grey override status when overriding only because stock ACC took over
+    if state == OpenpilotState.overriding and not ss_ac.overrideByStockAccOnly:
       if not mads.available:
         return "override"
 

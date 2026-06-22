@@ -2502,7 +2502,7 @@ struct Event {
     driverAssistanceAC @141 :Custom.DriverAssistanceAC;
     onroadEventsAC @142 :List(Custom.OnroadEventAC);
     controlsStateAC @143 :Custom.ControlsStateAC;
-    customReserved18 @144 :Custom.CustomReserved18;
+    selfdriveStateAC @144 :Custom.SelfdriveStateAC;
     customReserved19 @145 :Custom.CustomReserved19;
 
     # *********** legacy + deprecated ***********

@@ -90,7 +90,7 @@ class SelfdriveD(CruiseHelper):
     self.excessive_actuation = self.params.get("Offroad_ExcessiveActuation") is not None
 
     # Setup sockets
-    self.pm = messaging.PubMaster(['selfdriveState', 'onroadEvents'] + ['selfdriveStateSP', 'onroadEventsSP'] + ['onroadEventsAC'])
+    self.pm = messaging.PubMaster(['selfdriveState', 'onroadEvents'] + ['selfdriveStateSP', 'onroadEventsSP'] + ['onroadEventsAC', 'selfdriveStateAC'])
 
     self.gps_location_service = get_gps_location_service(self.params)
     self.gps_packets = [self.gps_location_service]
@@ -615,6 +615,15 @@ class SelfdriveD(CruiseHelper):
     icbm.vTarget = self.icbm.v_target
 
     self.pm.send('selfdriveStateSP', ss_sp_msg)
+
+    # selfdriveStateAC
+    ss_ac_msg = messaging.new_message('selfdriveStateAC')
+    ss_ac_msg.valid = True
+    ss_ac = ss_ac_msg.selfdriveStateAC
+    if self.state_machine.state == State.overriding:
+      active_event_types = self.events.get_event_types()
+      ss_ac.overrideByStockAccOnly = ET.OVERRIDE_LATERAL not in active_event_types and ET.OVERRIDE_LONGITUDINAL not in active_event_types
+    self.pm.send('selfdriveStateAC', ss_ac_msg)
 
     # onroadEventsSP - logged every second or on change
     if (self.sm.frame % int(1. / DT_CTRL) == 0) or (self.events_sp.names != self.events_sp_prev):
