@@ -11,6 +11,7 @@ from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
 from opendbc.car.vehicle_model import VehicleModel
+from openpilot.selfdrive.car.cruise import V_CRUISE_UNSET
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
@@ -66,6 +67,13 @@ class Controls(ControlsExt):
       self.LaC = LatControlTorque(self.CP, self.CP_SP, self.CI, DT_CTRL)
 
     self.LaC = ControlsExt.initialize_lateral_control(self, self.LaC, self.CI, DT_CTRL)
+
+    # ACSPilot: above this set/ego speed the car may hand longitudinal back to stock ACC
+    self.is_metric = self.params.get_bool("IsMetric")
+    self.stock_acc_override_speed = float(self.params.get("StockAccOverrideSpeed") or 0.0) * \
+                                    (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS)
+    if self.stock_acc_override_speed == 0.0:
+      self.stock_acc_override_speed = float("inf")
 
   def update(self):
     self.sm.update(15)
@@ -160,8 +168,12 @@ class Controls(ControlsExt):
         cloudlog.error(f"actuators.{p} not finite {actuators.to_dict()}")
         setattr(actuators, p, 0.0)
 
-    # ACSPilot carControl - currently unpopulated, reserved for future use
+    # ACSPilot carControl: arm/activate stock-ACC override above the configured speed
     CC_AC = car_custom.CarControlAC.new_message()
+    if self.CP.openpilotLongitudinalControl:
+      override_speed = CS.vCruiseCluster if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster
+      CC_AC.stockAccOverrideArmed = override_speed >= self.stock_acc_override_speed
+      CC_AC.stockAccOverrideActive = CC_AC.stockAccOverrideArmed and CC.enabled
 
     return CC, lac_log, CC_AC
 
@@ -192,6 +204,24 @@ class Controls(ControlsExt):
     if self.sm.valid['driverAssistance']:
       hudControl.leftLaneDepart = self.sm['driverAssistance'].leftLaneDeparture
       hudControl.rightLaneDepart = self.sm['driverAssistance'].rightLaneDeparture
+
+    # ACSPilot: feed lead distance/accel and driver-monitoring state to the car (e.g. VW stock HUD/ACC)
+    radar_state = self.sm['radarState'] if self.sm.valid['radarState'] else None
+    if radar_state is not None:
+      lead_one = radar_state.leadOne
+      lead_two = radar_state.leadTwo
+      lead = None
+      if lead_one.status and (not lead_two.status or lead_one.dRel < lead_two.dRel):
+        lead = lead_one
+      elif lead_two.status:
+        lead = lead_two
+      if lead is not None:
+        hudControlAC = CC_AC.hudControl
+        hudControlAC.leadDistance = lead.dRel
+        hudControlAC.leadAccel = lead.aLeadK
+
+    dm_state = self.sm['driverMonitoringState'] if self.sm.valid['driverMonitoringState'] else None
+    CC_AC.stockDriverMonitoring = dm_state is None or dm_state.isDistracted or not dm_state.faceDetected
 
     if self.get_lat_active(self.sm):
       CO = self.sm['carOutput']
