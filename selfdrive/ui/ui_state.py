@@ -83,6 +83,7 @@ class UIState(UIStateSP):
     self.personality: log.LongitudinalPersonality = log.LongitudinalPersonality.standard
     self.has_longitudinal_control: bool = False
     self.CP: car.CarParams | None = None
+    self.wide_cam_in_chill_mode: bool = False  # ACSPilot
     self.light_sensor: float = -1.0
     self._param_update_time: float = 0.0
 
@@ -188,6 +189,7 @@ class UIState(UIStateSP):
         self.has_longitudinal_control = self.params.get_bool("AlphaLongitudinalEnabled")
       else:
         self.has_longitudinal_control = self.CP.openpilotLongitudinalControl
+    self.wide_cam_in_chill_mode = self.params.get_bool("WideRoadCameraInChillMode")  # ACSPilot
     UIStateSP.update_params(self)
     self._param_update_time = time.monotonic()
 
