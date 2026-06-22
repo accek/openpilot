@@ -14,7 +14,7 @@ from openpilot.system.ui.lib.multilang import tr, tr_noop
 from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.widgets.network import NavButton
 from openpilot.system.ui.widgets.scroller_tici import Scroller
-from openpilot.system.ui.sunnypilot.widgets.list_view import multiple_button_item_sp, toggle_item_sp
+from openpilot.system.ui.sunnypilot.widgets.list_view import multiple_button_item_sp, option_item_sp, toggle_item_sp
 
 MADS_STEERING_MODE_OPTIONS = [
   (tr("Remain Active"), tr_noop("Remain Active: ALC will remain active when the brake pedal is pressed.")),
@@ -63,11 +63,53 @@ class MadsSettingsLayout(Widget):
       callback=self._update_steering_mode_description,
     )
 
+    # ACSPilot: speed-based lateral pause/resume (steering takeover at low speed)
+    self._pause_speed_toggle = toggle_item_sp(
+      title=lambda: tr("Pause Steering at Low Speed"),
+      description=tr("Pause lateral actuation when traveling below the desired speed selected and driver steers. Default is 10 MPH or 16 km/h."),
+      param="MadsPauseSpeedEnabled",
+      callback=self._on_pause_speed_toggle,
+    )
+    self._pause_speed = option_item_sp(
+      title=tr("Pause Speed"),
+      param="MadsPauseSpeed",
+      min_value=0, max_value=255, value_change_step=5,
+      label_callback=self._speed_label, inline=True,
+    )
+    self._resume_speed_toggle = toggle_item_sp(
+      title=lambda: tr("Resume Steering at High Speed"),
+      description=tr("Resume lateral actuation when traveling above the desired speed selected. Default is 40 MPH or 64 km/h."),
+      param="MadsResumeSpeedEnabled",
+      callback=self._on_resume_speed_toggle,
+    )
+    self._resume_speed = option_item_sp(
+      title=tr("Resume Speed"),
+      param="MadsResumeSpeed",
+      min_value=0, max_value=255, value_change_step=5,
+      label_callback=self._speed_label, inline=True,
+    )
+
     self.items = [
       self._main_cruise_toggle,
       self._unified_engagement_toggle,
       self._steering_mode,
+      self._pause_speed_toggle,
+      self._pause_speed,
+      self._resume_speed_toggle,
+      self._resume_speed,
     ]
+
+  @staticmethod
+  def _speed_label(value: int) -> str:
+    if value <= 0:
+      return tr("Default")
+    return f"{value} " + (tr("km/h") if ui_state.is_metric else tr("mph"))
+
+  def _on_pause_speed_toggle(self, state):
+    self._pause_speed.set_visible(state)
+
+  def _on_resume_speed_toggle(self, state):
+    self._resume_speed.set_visible(state)
 
   def _update_state(self):
     super()._update_state()
@@ -110,6 +152,9 @@ class MadsSettingsLayout(Widget):
 
   def _update_toggles(self):
     self._update_steering_mode_description(self._steering_mode.action_item.get_selected_button())
+    # ACSPilot: keep the speed sliders visible only when their feature is enabled
+    self._pause_speed.set_visible(self._pause_speed_toggle.action_item.get_state())
+    self._resume_speed.set_visible(self._resume_speed_toggle.action_item.get_state())
     if self._mads_limited_settings():
       ui_state.params.remove("MadsMainCruiseAllowed")
       ui_state.params.put_bool("MadsUnifiedEngagementMode", True)
