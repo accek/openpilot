@@ -310,6 +310,8 @@ def hardware_thread(end_event, hw_queue) -> None:
     startup_conditions["completed_training"] = params.get("CompletedTrainingVersion") == training_version
     startup_conditions["not_driver_view"] = not params.get_bool("IsDriverViewEnabled")
     startup_conditions["not_taking_snapshot"] = not params.get_bool("IsTakingSnapshot")
+    # ACSPilot: require selecting an operating preset before going onroad
+    startup_conditions["preset_selected"] = not params.get_bool("RequirePresetAtBoot") or params.get_bool("PresetSelected")
 
     # must be at an engageable thermal band to go onroad
     startup_conditions["device_temp_engageable"] = thermal_status < ThermalStatus.red

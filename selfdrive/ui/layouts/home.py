@@ -7,6 +7,8 @@ from openpilot.selfdrive.ui.widgets.offroad_alerts import UpdateAlert, OffroadAl
 from openpilot.selfdrive.ui.widgets.exp_mode_button import ExperimentalModeButton
 from openpilot.selfdrive.ui.widgets.prime import PrimeWidget
 from openpilot.selfdrive.ui.widgets.setup import SetupWidget
+from openpilot.selfdrive.ui.sunnypilot.widgets.presets import PresetsWidget
+from openpilot.system.ui.widgets.button import Button, ButtonStyle
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.lib.application import gui_app, FontWeight, MousePos
 from openpilot.system.ui.lib.multilang import tr, trn
@@ -25,6 +27,7 @@ class HomeLayoutState(IntEnum):
   HOME = 0
   UPDATE = 1
   ALERTS = 2
+  PRESETS = 3  # ACSPilot
 
 
 class HomeLayout(Widget):
@@ -43,6 +46,7 @@ class HomeLayout(Widget):
 
     self.update_available = False
     self.alert_count = 0
+    self._require_preset = self.params.get_bool("RequirePresetAtBoot")  # ACSPilot
     self._version_text = ""
     self._prev_update_available = False
     self._prev_alerts_present = False
@@ -59,7 +63,16 @@ class HomeLayout(Widget):
     self._setup_widget = SetupWidget()
 
     self._exp_mode_button = ExperimentalModeButton()
+
+    # ACSPilot: operating-mode presets
+    self._presets_widget = PresetsWidget(on_selected=lambda: self._set_state(HomeLayoutState.HOME))
+    self._change_preset_button = Button(tr("Change Preset"), click_callback=self._change_preset, button_style=ButtonStyle.NORMAL)
+
     self._setup_callbacks()
+
+  def _change_preset(self):
+    self.params.put_bool("PresetSelected", False)
+    self._set_state(HomeLayoutState.PRESETS)
 
   def show_event(self):
     super().show_event()
@@ -103,6 +116,8 @@ class HomeLayout(Widget):
       self._render_update_view()
     elif self.current_state == HomeLayoutState.ALERTS:
       self._render_alerts_view()
+    elif self.current_state == HomeLayoutState.PRESETS:
+      self._presets_widget.render(self.content_rect)
 
   def _update_state(self):
     self.header_rect = rl.Rectangle(
@@ -200,22 +215,38 @@ class HomeLayout(Widget):
     )
     self._exp_mode_button.render(exp_rect)
 
+    # ACSPilot: reserve space for a "Change Preset" button when presets are required at boot
+    preset_btn_height = 125 if self._require_preset else 0
+    preset_btn_spacing = SPACING if self._require_preset else 0
+
     setup_rect = rl.Rectangle(
       self.right_column_rect.x,
       self.right_column_rect.y + exp_height + SPACING,
       self.right_column_rect.width,
-      self.right_column_rect.height - exp_height - SPACING,
+      self.right_column_rect.height - exp_height - SPACING - preset_btn_height - preset_btn_spacing,
     )
     self._setup_widget.render(setup_rect)
 
+    if self._require_preset:
+      btn_rect = rl.Rectangle(self.right_column_rect.x, setup_rect.y + setup_rect.height + preset_btn_spacing,
+                              self.right_column_rect.width, preset_btn_height)
+      self._change_preset_button.set_rect(btn_rect)
+      self._change_preset_button.render()
+
   def _refresh(self):
     self._version_text = self._get_version_text()
+    self._require_preset = self.params.get_bool("RequirePresetAtBoot")  # ACSPilot
     update_available = self.update_alert.refresh()
     alert_count = self.offroad_alert.refresh()
     alerts_present = alert_count > 0
 
+    # ACSPilot: force the preset picker until an operating mode is chosen
+    if self.params.get_bool("RequirePresetAtBoot") and not self.params.get_bool("PresetSelected"):
+      self._set_state(HomeLayoutState.PRESETS)
+    elif self.current_state == HomeLayoutState.PRESETS:
+      self._set_state(HomeLayoutState.HOME)
     # Show panels on transition from no alert/update to any alerts/update
-    if not update_available and not alerts_present:
+    elif not update_available and not alerts_present:
       self._set_state(HomeLayoutState.HOME)
     elif update_available and ((not self._prev_update_available) or (not alerts_present and self.current_state == HomeLayoutState.ALERTS)):
       self._set_state(HomeLayoutState.UPDATE)

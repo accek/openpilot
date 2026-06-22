@@ -241,6 +241,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"UpdateOnMetered", {PERSISTENT | BACKUP, BOOL}},
     {"WideRoadCameraInChillMode", {PERSISTENT | BACKUP, BOOL}},
     {"PreferTorqueTune", {PERSISTENT | BACKUP, BOOL}},
+    {"RequirePresetAtBoot", {PERSISTENT | BACKUP, BOOL}},
+    {"PresetSelected", {CLEAR_ON_MANAGER_START, BOOL}},
 
     // sunnypilot model params
     {"CameraOffset", {PERSISTENT | BACKUP, FLOAT, "0.0"}},

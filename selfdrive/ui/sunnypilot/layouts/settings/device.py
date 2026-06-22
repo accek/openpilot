@@ -11,7 +11,7 @@ from openpilot.system.hardware import HARDWARE
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.sunnypilot.widgets.list_view import option_item_sp, multiple_button_item_sp, button_item_sp, \
-  dual_button_item_sp, Spacer
+  dual_button_item_sp, toggle_item_sp, Spacer
 from openpilot.system.ui.widgets import DialogResult
 from openpilot.system.ui.widgets.button import ButtonStyle
 from openpilot.system.ui.widgets.confirm_dialog import alert_dialog, ConfirmDialog
@@ -108,6 +108,13 @@ class DeviceLayoutSP(DeviceLayout):
       right_callback=self._power_off_prompt
     )
 
+    # ACSPilot: require choosing an operating preset on the home screen before the device will engage
+    self._require_preset_toggle = toggle_item_sp(
+      title=lambda: tr("Require Selecting Operating Preset at Boot"),
+      description=tr("If enabled, the device will display a profile selection dialog and will not activate until a selection is made."),
+      param="RequirePresetAtBoot",
+    )
+
     items = [
       text_item(lambda: tr("Dongle ID"), self._params.get("DongleId") or (lambda: tr("N/A"))),
       LineSeparator(),
@@ -120,6 +127,8 @@ class DeviceLayoutSP(DeviceLayout):
       button_item_sp(lambda: tr("Change Language"), lambda: tr("CHANGE"), callback=self._show_language_dialog),
       LineSeparator(),
       self._device_wake_mode,
+      LineSeparator(),
+      self._require_preset_toggle,
       LineSeparator(),
       self._max_time_offroad,
       LineSeparator(height=10),
