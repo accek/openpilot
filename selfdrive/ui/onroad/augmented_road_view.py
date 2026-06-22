@@ -39,6 +39,12 @@ ROAD_CAM_MIN_SPEED = 15.0  # m/s (34 mph)
 INF_POINT = np.array([1000.0, 0.0, 0.0])
 
 
+def wide_cam_enabled(experimental_mode: bool, wide_cam_in_chill_mode: bool, wide_available: bool) -> bool:
+  # ACSPilot: the wide road camera is selectable in experimental mode OR (chill mode with the
+  # WideRoadCameraInChillMode option on), as long as the wide stream is actually available.
+  return (experimental_mode or wide_cam_in_chill_mode) and wide_available
+
+
 class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
   def __init__(self, stream_type: VisionStreamType = VisionStreamType.VISION_STREAM_ROAD):
     CameraView.__init__(self, "camerad", stream_type)
@@ -131,7 +137,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
 
   def _switch_stream_if_needed(self, sm):
     # ACSPilot: optionally use the wide road camera at low speed in chill mode too, not just experimental mode
-    if (sm['selfdriveState'].experimentalMode or ui_state.wide_cam_in_chill_mode) and WIDE_CAM in self.available_streams:
+    if wide_cam_enabled(sm['selfdriveState'].experimentalMode, ui_state.wide_cam_in_chill_mode, WIDE_CAM in self.available_streams):
       v_ego = sm['carState'].vEgo
       if v_ego < WIDE_CAM_MAX_SPEED:
         target = WIDE_CAM
