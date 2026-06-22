@@ -6,6 +6,7 @@ See the LICENSE.md file in the root directory for more details.
 """
 
 from openpilot.common.params import Params
+from openpilot.common.constants import CV
 from opendbc.car import structs
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from opendbc.sunnypilot.car.hyundai.values import HyundaiFlagsSP, HyundaiSafetyFlagsSP
@@ -13,6 +14,16 @@ from opendbc.sunnypilot.car.tesla.values import TeslaFlagsSP
 
 
 MADS_NO_ACC_MAIN_BUTTON = ("rivian", "tesla")
+
+
+def read_speed_param(params: Params, enable_key: str, speed_key: str, default: float, is_metric: bool = True) -> float | None:
+  """ACSPilot: read a speed threshold (m/s) for a toggleable MADS speed feature, or None if disabled."""
+  if not params.get_bool(enable_key):
+    return None
+  speed = float(params.get(speed_key) or 0)
+  if speed > 0.0:
+    return speed * (CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS)
+  return default
 
 
 class MadsSteeringModeOnBrake:

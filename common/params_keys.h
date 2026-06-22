@@ -189,6 +189,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"MadsMainCruiseAllowed", {PERSISTENT | BACKUP, BOOL, "1"}},
     {"MadsSteeringMode", {PERSISTENT | BACKUP, INT, "0"}},
     {"MadsUnifiedEngagementMode", {PERSISTENT | BACKUP, BOOL, "1"}},
+    // ACSPilot: speed-based lateral pause/resume (steering takeover at low speed)
+    {"MadsPauseSpeedEnabled", {PERSISTENT | BACKUP, BOOL}},
+    {"MadsPauseSpeed", {PERSISTENT | BACKUP, INT}},
+    {"MadsResumeSpeedEnabled", {PERSISTENT | BACKUP, BOOL}},
+    {"MadsResumeSpeed", {PERSISTENT | BACKUP, INT}},
 
     // Model Manager params
     {"ModelManager_ActiveBundle", {PERSISTENT, JSON}},

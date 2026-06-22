@@ -9,9 +9,14 @@ from cereal import log, custom
 
 from opendbc.car import structs
 from opendbc.car.hyundai.values import HyundaiFlags
+from openpilot.common.constants import CV
 from openpilot.common.params import Params
-from openpilot.sunnypilot.mads.helpers import MadsSteeringModeOnBrake, read_steering_mode_param, MADS_NO_ACC_MAIN_BUTTON
+from openpilot.sunnypilot.mads.helpers import MadsSteeringModeOnBrake, read_steering_mode_param, read_speed_param, MADS_NO_ACC_MAIN_BUTTON
 from openpilot.sunnypilot.mads.state import StateMachine, GEARS_ALLOW_PAUSED_SILENT
+
+# ACSPilot: defaults for the speed-based lateral pause/resume (used when the configured param is 0)
+DEFAULT_MADS_PAUSE_SPEED = 10 * CV.MPH_TO_MS
+DEFAULT_MADS_RESUME_SPEED = 40 * CV.MPH_TO_MS
 
 State = custom.ModularAssistiveDrivingSystem.ModularAssistiveDrivingSystemState
 ButtonType = structs.CarState.ButtonEvent.Type
@@ -36,6 +41,7 @@ class ModularAssistiveDrivingSystem:
     self.lateral_mismatch_counter = 0
     self.allow_always = False
     self.no_main_cruise = False
+    self.speed_paused = False  # ACSPilot: lateral paused due to low-speed steering takeover
     self.selfdrive = selfdrive
     self.selfdrive.enabled_prev = False
     self.state_machine = StateMachine(self)
@@ -56,10 +62,19 @@ class ModularAssistiveDrivingSystem:
     self.main_enabled_toggle = self.params.get_bool("MadsMainCruiseAllowed")
     self.steering_mode_on_brake = read_steering_mode_param(self.CP, self.CP_SP, self.params)
     self.unified_engagement_mode = self.params.get_bool("MadsUnifiedEngagementMode")
+    self.pause_speed = read_speed_param(self.params, "MadsPauseSpeedEnabled", "MadsPauseSpeed",
+                                        DEFAULT_MADS_PAUSE_SPEED, self.selfdrive.is_metric)
+    self.resume_speed = read_speed_param(self.params, "MadsResumeSpeedEnabled", "MadsResumeSpeed",
+                                         DEFAULT_MADS_RESUME_SPEED, self.selfdrive.is_metric)
 
   def read_params(self):
     self.main_enabled_toggle = self.params.get_bool("MadsMainCruiseAllowed")
     self.unified_engagement_mode = self.params.get_bool("MadsUnifiedEngagementMode")
+    # ACSPilot: speed-based lateral pause/resume thresholds (m/s, or None if disabled)
+    self.pause_speed = read_speed_param(self.params, "MadsPauseSpeedEnabled", "MadsPauseSpeed",
+                                        DEFAULT_MADS_PAUSE_SPEED, self.selfdrive.is_metric)
+    self.resume_speed = read_speed_param(self.params, "MadsResumeSpeedEnabled", "MadsResumeSpeed",
+                                         DEFAULT_MADS_RESUME_SPEED, self.selfdrive.is_metric)
 
   def pedal_pressed_non_gas_pressed(self, CS: structs.CarState) -> bool:
     # ignore `pedalPressed` events caused by gas presses
@@ -73,6 +88,10 @@ class ModularAssistiveDrivingSystem:
       return False
 
     if self.events_sp.contains_in_list(GEARS_ALLOW_PAUSED_SILENT):
+      return False
+
+    # ACSPilot: while paused by a low-speed steering takeover, stay paused until the resume speed
+    if self.speed_paused:
       return False
 
     return True
@@ -142,6 +161,11 @@ class ModularAssistiveDrivingSystem:
         if self.pedal_pressed_non_gas_pressed(CS):
           self.transition_paused_state()
 
+      # ACSPilot: pause lateral if the driver steers at low speed (resumes at resume_speed)
+      if self.pause_speed is not None and CS.vEgoCluster < self.pause_speed and CS.steeringPressed:
+        self.speed_paused = True
+        self.transition_paused_state()
+
       self.events.remove(EventName.preEnableStandstill)
       self.events.remove(EventName.belowEngageSpeed)
       self.events.remove(EventName.speedTooLow)
@@ -194,6 +218,16 @@ class ModularAssistiveDrivingSystem:
           if self.events_sp.contains(EventNameSP.lkasEnable):
             self.events_sp.remove(EventNameSP.lkasEnable)
             self.events_sp.add(EventNameSP.pedalPressedAlertOnly)
+
+    # ACSPilot: release the low-speed steering pause at the resume speed (or when fully disengaged).
+    # Note: a manual LKAS re-enable adds lkasEnable (not silentLkasEnable) and bypasses the gate, so
+    # the driver can always re-engage; this only suppresses the automatic silent resume.
+    if self.state_machine.state == State.disabled:
+      self.speed_paused = False
+    elif self.speed_paused:
+      resume_speed = self.resume_speed if self.resume_speed is not None else self.pause_speed
+      if resume_speed is not None and CS.vEgoCluster >= resume_speed:
+        self.speed_paused = False
 
     if self.should_silent_lkas_enable(CS):
       if self.state_machine.state == State.paused:
