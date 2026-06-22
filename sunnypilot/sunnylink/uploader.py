@@ -266,7 +266,9 @@ def main(exit_event: threading.Event | None = None) -> None:
         time.sleep(60 if offroad else 5)
       continue
 
-    success = uploader.step(sm['deviceState'].networkType.raw, sm['deviceState'].networkMetered)
+    # ACSPilot: UploadOnMetered force-allows uploads on metered connections (default off keeps native throttling)
+    metered = sm['deviceState'].networkMetered and not params.get_bool("UploadOnMetered")
+    success = uploader.step(sm['deviceState'].networkType.raw, metered)
     if success is None:
       backoff = 60 if offroad else 5
     elif success:
