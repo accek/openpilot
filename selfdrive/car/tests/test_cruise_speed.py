@@ -5,7 +5,7 @@ import numpy as np
 from openpilot.common.parameterized import parameterized_class
 from cereal import log
 from openpilot.selfdrive.car.cruise import VCruiseHelper, V_CRUISE_MIN, V_CRUISE_MAX, V_CRUISE_INITIAL, IMPERIAL_INCREMENT
-from cereal import car, custom
+from cereal import car, custom, car_custom
 from openpilot.common.constants import CV
 from openpilot.selfdrive.test.longitudinal_maneuvers.maneuver import Maneuver
 
@@ -50,7 +50,8 @@ class TestVCruiseHelper:
   def setup_method(self):
     self.CP = car.CarParams(pcmCruise=self.pcm_cruise)
     self.CP_SP = custom.CarParamsSP(pcmCruiseSpeed=self.pcm_cruise_speed)
-    self.v_cruise_helper = VCruiseHelper(self.CP, self.CP_SP)
+    self.CP_AC = car_custom.CarParamsAC.new_message()
+    self.v_cruise_helper = VCruiseHelper(self.CP, self.CP_SP, self.CP_AC)
     self.reset_cruise_speed_state()
 
   def reset_cruise_speed_state(self):

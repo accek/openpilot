@@ -72,7 +72,8 @@ class Car:
   def __init__(self, CI=None, RI=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
     self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP', 'longitudinalPlanSP'] + ['carControlAC'])
-    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP', 'carStateSP'] + ['carParamsAC', 'carStateAC'])
+    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] +
+                                  ['carParamsSP', 'carStateSP'] + ['carParamsAC', 'carStateAC'])
 
     self.can_rcv_cum_timeout_counter = 0
 
@@ -186,7 +187,7 @@ class Car:
     self.params.put_nonblocking("CarParamsACCache", cp_ac_bytes)
     self.params.put_nonblocking("CarParamsACPersistent", cp_ac_bytes)
 
-    self.v_cruise_helper = VCruiseHelper(self.CP, self.CP_SP)
+    self.v_cruise_helper = VCruiseHelper(self.CP, self.CP_SP, self.CP_AC)
 
     self.is_metric = self.params.get_bool("IsMetric")
     self.experimental_mode = self.params.get_bool("ExperimentalMode")

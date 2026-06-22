@@ -228,10 +228,14 @@ class SelfdriveD(CruiseHelper):
     if self.CP.passive:
       return
 
-    # Block resume if cruise never previously enabled
-    resume_pressed = any(be.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for be in CS.buttonEvents)
-    if not self.CP.pcmCruise and CS.vCruise > 250 and resume_pressed:
-      self.events.add(EventName.resumeBlocked)
+    # Block resume if cruise never previously enabled (ACSPilot: skipped when the
+    # resume button is configured to set a default cruise speed instead)
+    if not self.CP_AC.resumeButtonSetsDefaultVCruise:
+      resume_buttons = (ButtonType.accelCruise, ButtonType.resumeCruise) if self.CP_AC.accelButtonResumesCruise \
+                       else (ButtonType.accelCruise,)
+      resume_pressed = any(be.type in resume_buttons for be in CS.buttonEvents)
+      if not self.CP.pcmCruise and CS.vCruise > 250 and resume_pressed:
+        self.events.add(EventName.resumeBlocked)
 
     if not self.CP.notCar:
       self.events.add_from_msg(self.sm['driverMonitoringState'].events)

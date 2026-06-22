@@ -30,18 +30,26 @@ CRUISE_INTERVAL_SIGN = {
 
 
 class VCruiseHelper(VCruiseHelperSP):
-  def __init__(self, CP, CP_SP):
+  def __init__(self, CP, CP_SP, CP_AC):
     VCruiseHelperSP.__init__(self, CP, CP_SP)
     self.CP = CP
+    self.CP_AC = CP_AC
     self.v_cruise_kph = V_CRUISE_UNSET
     self.v_cruise_cluster_kph = V_CRUISE_UNSET
     self.v_cruise_kph_last = 0
-    self.button_timers = {ButtonType.decelCruise: 0, ButtonType.accelCruise: 0}
+    # ACSPilot adds a dedicated SET button (sets cruise speed to current vEgo)
+    self.button_timers = {ButtonType.decelCruise: 0, ButtonType.accelCruise: 0, ButtonType.setCruise: 0}
     self.button_change_states = {btn: {"standstill": False, "enabled": False} for btn in self.button_timers}
 
   @property
   def v_cruise_initialized(self):
     return self.v_cruise_kph != V_CRUISE_UNSET
+
+  @property
+  def resume_buttons(self):
+    # ACSPilot: optionally treat the accel button as a resume button
+    return (ButtonType.accelCruise, ButtonType.resumeCruise) if self.CP_AC.accelButtonResumesCruise \
+           else (ButtonType.accelCruise,)
 
   def update_v_cruise(self, CS, enabled, is_metric):
     self.v_cruise_kph_last = self.v_cruise_kph
@@ -101,7 +109,7 @@ class VCruiseHelper(VCruiseHelperSP):
 
     # Don't adjust speed when pressing resume to exit standstill
     cruise_standstill = self.button_change_states[button_type]["standstill"] or CS.cruiseState.standstill
-    if button_type == ButtonType.accelCruise and cruise_standstill:
+    if button_type in self.resume_buttons and cruise_standstill:
       return
 
     # Don't adjust speed if we've enabled since the button was depressed (some ports enable on rising edge)
@@ -114,14 +122,19 @@ class VCruiseHelper(VCruiseHelperSP):
     if self.update_speed_limit_assist_pre_active_confirmed(button_type):
       return
 
-    long_press, v_cruise_delta = VCruiseHelperSP.update_v_cruise_delta(self, long_press, v_cruise_delta)
-    if long_press and self.v_cruise_kph % v_cruise_delta != 0:  # partial interval
-      self.v_cruise_kph = CRUISE_NEAREST_FUNC[button_type](self.v_cruise_kph / v_cruise_delta) * v_cruise_delta
-    else:
-      self.v_cruise_kph += v_cruise_delta * CRUISE_INTERVAL_SIGN[button_type]
+    if button_type in (ButtonType.decelCruise, ButtonType.accelCruise):
+      long_press, v_cruise_delta = VCruiseHelperSP.update_v_cruise_delta(self, long_press, v_cruise_delta)
+      if long_press and self.v_cruise_kph % v_cruise_delta != 0:  # partial interval
+        self.v_cruise_kph = CRUISE_NEAREST_FUNC[button_type](self.v_cruise_kph / v_cruise_delta) * v_cruise_delta
+      else:
+        self.v_cruise_kph += v_cruise_delta * CRUISE_INTERVAL_SIGN[button_type]
 
-    # If set is pressed while overriding, clip cruise speed to minimum of vEgo
-    if CS.gasPressed and button_type in (ButtonType.decelCruise, ButtonType.setCruise):
+    # ACSPilot: SET sets the cruise speed to the current speed
+    if button_type == ButtonType.setCruise:
+      self.v_cruise_kph = CS.vEgo * CV.MS_TO_KPH
+
+    # If decel is pressed while overriding, clip cruise speed to minimum of vEgo
+    if CS.gasPressed and button_type == ButtonType.decelCruise and self.CP_AC.decelButtonLimitedToVEgoWhenOverriding:
       self.v_cruise_kph = max(self.v_cruise_kph, CS.vEgo * CV.MS_TO_KPH)
 
     self.v_cruise_kph = np.clip(round(self.v_cruise_kph, 1), self.v_cruise_min, V_CRUISE_MAX)
