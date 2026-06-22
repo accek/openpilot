@@ -28,6 +28,17 @@ TITLE_FONT_SIZE = 90
 BUTTON_SPACING = 30
 
 
+def apply_preset(params: Params, preset: dict) -> None:
+  # ACSPilot: write a preset's param group (bool params via put_bool, ints via put) and mark a preset
+  # as selected so the boot-time picker (RequirePresetAtBoot) is satisfied.
+  for key, value in preset.items():
+    if isinstance(value, bool):
+      params.put_bool(key, value)
+    else:
+      params.put(key, value)
+  params.put_bool("PresetSelected", True)
+
+
 class PresetsWidget(Widget):
   def __init__(self, on_selected: Callable[[], None] | None = None):
     super().__init__()
@@ -38,12 +49,7 @@ class PresetsWidget(Widget):
                      for label, preset in PRESETS]
 
   def _select(self, preset: dict):
-    for key, value in preset.items():
-      if isinstance(value, bool):
-        self._params.put_bool(key, value)
-      else:
-        self._params.put(key, value)
-    self._params.put_bool("PresetSelected", True)
+    apply_preset(self._params, preset)
     if self._on_selected is not None:
       self._on_selected()
 
