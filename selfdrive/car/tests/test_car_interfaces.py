@@ -3,7 +3,7 @@ import hypothesis.strategies as st
 from hypothesis import Phase, given, settings
 from openpilot.common.parameterized import parameterized
 
-from cereal import car, custom
+from cereal import car, custom, car_custom
 from opendbc.car import DT_CTRL
 from opendbc.car.structs import CarParams
 from opendbc.car.tests.test_car_interfaces import get_fuzzy_car_interface
@@ -36,15 +36,17 @@ class TestCarInterfaces:
 
     cc_msg = FuzzyGenerator.get_random_msg(data.draw, car.CarControl, real_floats=True)
     cc_sp_msg = FuzzyGenerator.get_random_msg(data.draw, custom.CarControlSP, real_floats=True)
+    cc_ac_msg = FuzzyGenerator.get_random_msg(data.draw, car_custom.CarControlAC, real_floats=True)
     # Run car interface
     now_nanos = 0
     CC = car.CarControl.new_message(**cc_msg)
     CC = CC.as_reader()
     CC_SP = custom.CarControlSP.new_message(**cc_sp_msg)
     CC_SP = convert_carControlSP(CC_SP.as_reader())
+    CC_AC = car_custom.CarControlAC.new_message(**cc_ac_msg).as_reader()
     for _ in range(10):
       car_interface.update([])
-      car_interface.apply(CC, CC_SP, now_nanos)
+      car_interface.apply(CC, CC_SP, CC_AC, now_nanos)
       now_nanos += DT_CTRL * 1e9  # 10 ms
 
     CC = car.CarControl.new_message(**cc_msg)
@@ -54,7 +56,7 @@ class TestCarInterfaces:
     CC = CC.as_reader()
     for _ in range(10):
       car_interface.update([])
-      car_interface.apply(CC, CC_SP, now_nanos)
+      car_interface.apply(CC, CC_SP, CC_AC, now_nanos)
       now_nanos += DT_CTRL * 1e9  # 10ms
 
     # Test controller initialization

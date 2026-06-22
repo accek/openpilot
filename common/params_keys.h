@@ -227,6 +227,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
+    // --- acspilot params --- //
+    {"CarParamsAC", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BYTES}},
+    {"CarParamsACCache", {CLEAR_ON_MANAGER_START, BYTES}},
+    {"CarParamsACPersistent", {PERSISTENT, BYTES}},
+
     // sunnypilot model params
     {"CameraOffset", {PERSISTENT | BACKUP, FLOAT, "0.0"}},
     {"LagdToggle", {PERSISTENT | BACKUP, BOOL, "1"}},

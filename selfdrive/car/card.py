@@ -5,7 +5,7 @@ import threading
 
 import cereal.messaging as messaging
 
-from cereal import car, log, custom
+from cereal import car, log, custom, car_custom
 
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
@@ -66,18 +66,20 @@ class Car:
   RI: RadarInterfaceBase
   CP: car.CarParams
   CP_SP: structs.CarParamsSP
+  CP_AC: structs.CarParamsAC
   CP_SP_capnp: custom.CarParamsSP
 
   def __init__(self, CI=None, RI=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
-    self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP', 'longitudinalPlanSP'])
-    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP', 'carStateSP'])
+    self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'] + ['carControlSP', 'longitudinalPlanSP'] + ['carControlAC'])
+    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'] + ['carParamsSP', 'carStateSP'] + ['carParamsAC', 'carStateAC'])
 
     self.can_rcv_cum_timeout_counter = 0
 
     self.CC_prev = car.CarControl.new_message()
     self.CS_prev = car.CarState.new_message()
     self.CS_SP_prev = custom.CarStateSP.new_message()
+    self.CS_AC_prev = structs.CarStateAC.new_message()
     self.initialized_prev = False
 
     self.last_actuators_output = structs.CarControl.Actuators()
@@ -114,11 +116,12 @@ class Car:
       self.RI = interfaces[self.CI.CP.carFingerprint].RadarInterface(self.CI.CP, self.CI.CP_SP)
       self.CP = self.CI.CP
       self.CP_SP = self.CI.CP_SP
+      self.CP_AC = self.CI.CP_AC
 
       # continue onto next fingerprinting step in pandad
       self.params.put_bool("FirmwareQueryDone", True)
     else:
-      self.CI, self.CP, self.CP_SP = CI, CI.CP, CI.CP_SP
+      self.CI, self.CP, self.CP_SP, self.CP_AC = CI, CI.CP, CI.CP_SP, CI.CP_AC
       self.RI = RI
 
     self.CP.alternativeExperience = 0
@@ -177,6 +180,12 @@ class Car:
     self.params.put_nonblocking("CarParamsSPCache", cp_sp_bytes)
     self.params.put_nonblocking("CarParamsSPPersistent", cp_sp_bytes)
 
+    # Write CarParamsAC for controls and ui
+    cp_ac_bytes = self.CP_AC.to_bytes()
+    self.params.put("CarParamsAC", cp_ac_bytes)
+    self.params.put_nonblocking("CarParamsACCache", cp_ac_bytes)
+    self.params.put_nonblocking("CarParamsACPersistent", cp_ac_bytes)
+
     self.v_cruise_helper = VCruiseHelper(self.CP, self.CP_SP)
 
     self.is_metric = self.params.get_bool("IsMetric")
@@ -188,14 +197,14 @@ class Car:
     # log fingerprint in sentry
     sunnypilot_interfaces.log_fingerprint(self.CP)
 
-  def state_update(self) -> tuple[car.CarState, custom.CarStateSP, structs.RadarDataT | None]:
+  def state_update(self) -> tuple[car.CarState, custom.CarStateSP, car_custom.CarStateAC, structs.RadarDataT | None]:
     """carState update loop, driven by can"""
 
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
     can_list = can_capnp_to_list(can_strs)
 
     # Update carState from CAN
-    CS, CS_SP = self.CI.update(can_list)
+    CS, CS_SP, CS_AC = self.CI.update(can_list)
     CS_SP = convert_to_capnp(CS_SP)
 
     # Update radar tracks from CAN
@@ -222,9 +231,9 @@ class Car:
     CS.vCruise = float(self.v_cruise_helper.v_cruise_kph)
     CS.vCruiseCluster = float(self.v_cruise_helper.v_cruise_cluster_kph)
 
-    return CS, CS_SP, RD
+    return CS, CS_SP, CS_AC, RD
 
-  def state_publish(self, CS: car.CarState, CS_SP: custom.CarStateSP, RD: structs.RadarDataT | None):
+  def state_publish(self, CS: car.CarState, CS_SP: custom.CarStateSP, CS_AC: car_custom.CarStateAC, RD: structs.RadarDataT | None):
     """carState and carParams publish loop"""
 
     # carParams - logged every 50 seconds (> 1 per segment)
@@ -248,6 +257,11 @@ class Car:
     cs_send.carState.cumLagMs = -self.rk.remaining * 1000.
     self.pm.send('carState', cs_send)
 
+    cs_ac_send = messaging.new_message('carStateAC')
+    cs_ac_send.valid = CS.canValid
+    cs_ac_send.carStateAC = CS_AC
+    self.pm.send('carStateAC', cs_ac_send)
+
     if RD is not None:
       tracks_msg = messaging.new_message('liveTracks')
       tracks_msg.valid = not any(RD.errors.to_dict().values())
@@ -261,38 +275,43 @@ class Car:
       cp_sp_send.carParamsSP = self.CP_SP_capnp
       self.pm.send('carParamsSP', cp_sp_send)
 
+      cp_ac_send = messaging.new_message('carParamsAC')
+      cp_ac_send.valid = True
+      cp_ac_send.carParamsAC = self.CP_AC
+      self.pm.send('carParamsAC', cp_ac_send)
+
     cs_sp_send = messaging.new_message('carStateSP')
     cs_sp_send.valid = CS.canValid
     cs_sp_send.carStateSP = CS_SP
     self.pm.send('carStateSP', cs_sp_send)
 
-  def controls_update(self, CS: car.CarState, CC: car.CarControl, CC_SP: custom.CarControlSP):
+  def controls_update(self, CS: car.CarState, CC: car.CarControl, CC_SP: custom.CarControlSP, CC_AC: car_custom.CarControlAC):
     """control update loop, driven by carControl"""
 
     if not self.initialized_prev:
       # Initialize CarInterface, once controls are ready
       # TODO: this can make us miss at least a few cycles when doing an ECU knockout
-      self.CI.init(self.CP, self.CP_SP, *self.can_callbacks)
+      self.CI.init(self.CP, self.CP_SP, self.CP_AC, *self.can_callbacks)
       # signal pandad to switch to car safety mode
       self.params.put_bool_nonblocking("ControlsReady", True)
 
     if self.sm.all_alive(['carControl']):
       # send car controls over can
       now_nanos = self.can_log_mono_time if REPLAY else int(time.monotonic() * 1e9)
-      self.last_actuators_output, can_sends = self.CI.apply(CC, convert_carControlSP(CC_SP), now_nanos)
+      self.last_actuators_output, can_sends = self.CI.apply(CC, convert_carControlSP(CC_SP), CC_AC, now_nanos)
       self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
 
       self.CC_prev = CC
 
   def step(self):
-    CS, CS_SP, RD = self.state_update()
+    CS, CS_SP, CS_AC, RD = self.state_update()
 
-    self.state_publish(CS, CS_SP, RD)
+    self.state_publish(CS, CS_SP, CS_AC, RD)
 
     initialized = (not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents']) and
                    self.sm.seen['onroadEvents'])
     if not self.CP.passive and initialized:
-      self.controls_update(CS, self.sm['carControl'], self.sm['carControlSP'])
+      self.controls_update(CS, self.sm['carControl'], self.sm['carControlSP'], self.sm['carControlAC'])
 
     self.initialized_prev = initialized
     self.CS_prev = CS

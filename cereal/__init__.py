@@ -8,4 +8,5 @@ with as_file(files("cereal")) as fspath:
   CEREAL_PATH = fspath.as_posix()
   log = capnp.load(os.path.join(CEREAL_PATH, "log.capnp"))
   car = capnp.load(os.path.join(CEREAL_PATH, "car.capnp"))
+  car_custom = capnp.load(os.path.join(CEREAL_PATH, "car_custom.capnp"))
   custom = capnp.load(os.path.join(CEREAL_PATH, "custom.capnp"))
