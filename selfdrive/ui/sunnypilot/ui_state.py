@@ -6,7 +6,7 @@ See the LICENSE.md file in the root directory for more details.
 """
 from enum import Enum
 
-from cereal import messaging, log, car, custom
+from cereal import messaging, log, car, custom, car_custom
 from openpilot.common.params import Params
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.display import OnroadBrightness
 from openpilot.sunnypilot.sunnylink.sunnylink_state import SunnylinkState
@@ -28,6 +28,7 @@ class UIStateSP:
   def __init__(self):
     self.params = Params()
     self.CP_SP: custom.CarParamsSP | None = None
+    self.CP_AC: car_custom.CarParamsAC | None = None  # ACSPilot
     self.has_icbm: bool = False
     self.is_sp_release: bool = self.params.get_bool("IsReleaseSpBranch")
     self.sm_services_ext = [
@@ -126,6 +127,10 @@ class UIStateSP:
     if CP_SP_bytes is not None:
       self.CP_SP = messaging.log_from_bytes(CP_SP_bytes, custom.CarParamsSP)
       self.has_icbm = self.CP_SP.intelligentCruiseButtonManagementAvailable and self.params.get_bool("IntelligentCruiseButtonManagement")
+
+    CP_AC_bytes = self.params.get("CarParamsACPersistent")  # ACSPilot
+    if CP_AC_bytes is not None:
+      self.CP_AC = messaging.log_from_bytes(CP_AC_bytes, car_custom.CarParamsAC)
 
     self._enforce_constraints()
     self.active_bundle = self.params.get("ModelManager_ActiveBundle")

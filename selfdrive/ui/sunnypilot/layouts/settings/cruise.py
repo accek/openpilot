@@ -87,6 +87,14 @@ class CruiseLayout(Widget):
       description=tr("Enable toggle to allow the model to determine when to use sunnypilot ACC or sunnypilot End to End Longitudinal."),
       param="DynamicExperimentalControl")
 
+    # ACSPilot: use stock ACC above a configured set speed (0 = never)
+    self.stock_acc_override_speed = option_item_sp(
+      title=tr("Stock ACC Override Speed"),
+      description=tr("Use stock ACC when set speed exceeds the given speed."),
+      param="StockAccOverrideSpeed",
+      min_value=0, max_value=255, value_change_step=5,
+      label_callback=self._stock_acc_override_label)
+
     items = [
       self.icbm_toggle,
       self.dec_toggle,
@@ -95,9 +103,15 @@ class CruiseLayout(Widget):
       self.custom_acc_toggle,
       self.custom_acc_short_increment,
       self.custom_acc_long_increment,
+      self.stock_acc_override_speed,
       self.sla_settings_button,
     ]
     return items
+
+  def _stock_acc_override_label(self, value: int) -> str:
+    if value <= 0:
+      return tr("Never")
+    return f"{value} " + (tr("km/h") if ui_state.is_metric else tr("mph"))
 
   def _render(self, rect):
     if self._current_panel == PanelType.SLA:
@@ -185,6 +199,12 @@ class CruiseLayout(Widget):
         self.custom_acc_toggle.show_description(True)
 
     self._on_custom_acc_toggle(self.custom_acc_toggle.action_item.get_state())
+
+    # ACSPilot: stock-ACC override speed — only shown if the car supports it, enabled only with op long
+    stock_acc_available = ui_state.CP_AC is not None and ui_state.CP_AC.stockAccOverrideAvailable
+    self.stock_acc_override_speed.set_visible(stock_acc_available)
+    if stock_acc_available:
+      self.stock_acc_override_speed.action_item.set_enabled(ui_state.has_longitudinal_control)
 
   def _on_custom_acc_toggle(self, state):
     self.custom_acc_short_increment.set_visible(state)
