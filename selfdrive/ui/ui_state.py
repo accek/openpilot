@@ -17,6 +17,12 @@ from openpilot.selfdrive.ui.sunnypilot.ui_state import UIStateSP, DeviceSP
 BACKLIGHT_OFFROAD = 65 if HARDWARE.get_device_type() == "mici" else 50
 
 
+def screen_brightness_to_light_sensor(screen_brightness: float) -> float:
+  # ACSPilot: map a car-reported, normalized (0..1) screen-brightness setting onto the 0..100 light-sensor
+  # scale the UI uses for auto-brightness. Values above 1.0 are clamped (full brightness).
+  return 100.0 * min(1.0, screen_brightness)
+
+
 class UIStatus(Enum):
   DISENGAGED = "disengaged"
   ENGAGED = "engaged"
@@ -135,7 +141,7 @@ class UIState(UIStateSP):
 
     # ACSPilot: prefer the car-reported screen brightness (e.g. VW Dimmung) over the camera light sensor
     if self.sm.updated["carStateAC"] and self.sm["carStateAC"].screenBrightness > 0:
-      self.light_sensor = 100.0 * min(1.0, self.sm["carStateAC"].screenBrightness)
+      self.light_sensor = screen_brightness_to_light_sensor(self.sm["carStateAC"].screenBrightness)
     # Handle wide road camera state updates
     elif self.sm.updated["wideRoadCameraState"]:
       cam_state = self.sm["wideRoadCameraState"]
