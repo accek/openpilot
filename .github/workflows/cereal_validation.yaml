@@ -41,7 +41,11 @@ jobs:
           repository: 'commaai/openpilot'
           path: upstream_openpilot
           sparse-checkout: cereal
-          ref: "refs/heads/master"
+          # ACSPilot: pin to the commaai master commit this fork's cereal is synced to (sync-20260412)
+          # instead of moving master. commaai moved cereal/ -> openpilot/cereal/ on 2026-06-22 (#38220),
+          # which breaks the hardcoded `cereal` sparse-checkout/--cereal-dir paths; this commit still has
+          # the top-level cereal/ layout the job expects and matches the schema being validated.
+          ref: "b930f5c3f145342263e6b74bee868e43b778c74a"
 
       - name: Init upstream opendbc submodule
         working-directory: upstream_openpilot
