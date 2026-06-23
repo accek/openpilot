@@ -164,7 +164,7 @@ class TestCarModelBase(unittest.TestCase):
     del cls.can_msgs
 
   def setUp(self):
-    self.CI = self.CarInterface(self.CP.copy(), copy.deepcopy(self.CP_SP), copy.deepcopy(self.CP_AC))
+    self.CI = self.CarInterface(self.CP.copy(), copy.deepcopy(self.CP_SP), self.CP_AC.copy())
     assert self.CI
 
     # TODO: check safetyModel is in release panda build
