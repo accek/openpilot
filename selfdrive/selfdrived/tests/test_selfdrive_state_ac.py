@@ -6,7 +6,7 @@ State = log.SelfdriveState.OpenpilotState
 
 
 class TestOverrideByStockAccOnly:
-  # ACSPilot: selfdriveStateAC.overrideByStockAccOnly drives whether the HUD greys out while overriding.
+  # ACSPilot: selfdriveStateAC.overrideByStockAccOnly drives whether the HUD grays out while overriding.
   # It must be True only when openpilot is in the overriding state AND neither an openpilot lateral nor
   # longitudinal override is active (i.e. the stock ACC alone is in control of longitudinal).
   def test_false_when_not_overriding(self):
