@@ -2500,7 +2500,7 @@ struct Event {
     carParamsAC @139 :CarCustom.CarParamsAC;
     carControlAC @140 :CarCustom.CarControlAC;
     driverAssistanceAC @141 :Custom.DriverAssistanceAC;
-    onroadEventsAC @142 :List(Custom.OnroadEventAC);
+    onroadEventsAC @142 :Custom.OnroadEventsAC;
     controlsStateAC @143 :Custom.ControlsStateAC;
     selfdriveStateAC @144 :Custom.SelfdriveStateAC;
     customReserved19 @145 :Custom.CustomReserved19;

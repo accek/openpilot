@@ -641,9 +641,9 @@ class SelfdriveD(CruiseHelper):
 
     # onroadEventsAC - logged every second or on change
     if (self.sm.frame % int(1. / DT_CTRL) == 0) or (self.events_ac.names != self.events_ac_prev):
-      ce_send_ac = messaging.new_message('onroadEventsAC', len(self.events_ac))
+      ce_send_ac = messaging.new_message('onroadEventsAC')
       ce_send_ac.valid = True
-      ce_send_ac.onroadEventsAC = self.events_ac.to_msg()
+      ce_send_ac.onroadEventsAC.events = self.events_ac.to_msg()
       self.pm.send('onroadEventsAC', ce_send_ac)
     self.events_ac_prev = self.events_ac.names.copy()
 

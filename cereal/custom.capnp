@@ -470,7 +470,14 @@ struct DriverAssistanceAC @0xbd443b539493bc68 {
   rightLaneVisible @1 :Bool = true;
 }
 
-struct OnroadEventAC @0xfc6241ed8877b611 {
+# Wrapper struct so the customReserved16 slot (log.capnp Event @142) stays a single struct
+# (with that slot's reserved id) instead of a List, matching onroadEventsSP and the upstream
+# cereal-compat check. The events list lives inside.
+struct OnroadEventsAC @0xfc6241ed8877b611 {
+  events @0 :List(OnroadEventAC);
+}
+
+struct OnroadEventAC @0xfcb26af729807a45 {
   name @0 :EventName;
 
   # event types
