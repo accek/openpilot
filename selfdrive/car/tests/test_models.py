@@ -152,6 +152,7 @@ class TestCarModelBase(unittest.TestCase):
     cls.CarInterface = interfaces[cls.platform]
     cls.CP = cls.CarInterface.get_params(cls.platform, cls.fingerprint, car_fw, alpha_long, False, prefer_torque_tune=False, docs=False)
     cls.CP_SP = cls.CarInterface.get_params_sp(cls.CP, cls.platform,  cls.fingerprint, car_fw, alpha_long, False, docs=False)
+    cls.CP_AC = cls.CarInterface.get_params_ac(cls.CP, cls.platform, cls.fingerprint, car_fw, alpha_long, False, docs=False)
     assert cls.CP
     assert cls.CP_SP
     assert cls.CP.carFingerprint == cls.platform
@@ -163,7 +164,7 @@ class TestCarModelBase(unittest.TestCase):
     del cls.can_msgs
 
   def setUp(self):
-    self.CI = self.CarInterface(self.CP.copy(), copy.deepcopy(self.CP_SP))
+    self.CI = self.CarInterface(self.CP.copy(), copy.deepcopy(self.CP_SP), copy.deepcopy(self.CP_AC))
     assert self.CI
 
     # TODO: check safetyModel is in release panda build
@@ -198,10 +199,11 @@ class TestCarModelBase(unittest.TestCase):
     can_invalid_cnt = 0
     CC = structs.CarControl().as_reader()
     CC_SP = structs.CarControlSP()
+    CC_AC = structs.CarControlAC()
 
     for i, msg in enumerate(self.can_msgs):
-      CS, _ = self.CI.update(msg)
-      self.CI.apply(CC, CC_SP, msg[0])
+      CS, _, _ = self.CI.update(msg)
+      self.CI.apply(CC, CC_SP, CC_AC, msg[0])
 
       # wait max of 2s for low frequency msgs to be seen
       if i > 250:
@@ -273,10 +275,11 @@ class TestCarModelBase(unittest.TestCase):
     def test_car_controller(car_control, car_control_sp):
       now_nanos = 0
       msgs_sent = 0
-      CI = self.CarInterface(self.CP, self.CP_SP)
+      car_control_ac = structs.CarControlAC()
+      CI = self.CarInterface(self.CP, self.CP_SP, self.CP_AC)
       for _ in range(round(10.0 / DT_CTRL)):  # make sure we hit the slowest messages
         CI.update([])
-        _, sendcan = CI.apply(car_control, car_control_sp, now_nanos)
+        _, sendcan = CI.apply(car_control, car_control_sp, car_control_ac, now_nanos)
 
         now_nanos += DT_CTRL * 1e9
         msgs_sent += len(sendcan)
@@ -342,7 +345,7 @@ class TestCarModelBase(unittest.TestCase):
       self.safety.safety_rx_hook(to_send)
 
       can = [(int(time.monotonic() * 1e9), [CanData(address=address, dat=dat, src=bus)])]
-      CS, _ = self.CI.update(can)
+      CS, _, _ = self.CI.update(can)
       if n < 5:  # CANParser warmup time
         continue
 
@@ -404,7 +407,7 @@ class TestCarModelBase(unittest.TestCase):
     checks = defaultdict(int)
     vehicle_speed_seen = self.CP.steerControlType == SteerControlType.angle and not self.CP.notCar
     for idx, can in enumerate(self.can_msgs):
-      CS, _ = self.CI.update(can)
+      CS, _, _ = self.CI.update(can)
       CS = CS.as_reader()
       for msg in filter(lambda m: m.src < 64, can[1]):
         to_send = libsafety_py.make_CANPacket(msg.address, msg.src % 4, msg.dat)
