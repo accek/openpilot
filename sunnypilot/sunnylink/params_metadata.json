@@ -146,6 +146,18 @@
     "title": "Car Params",
     "description": ""
   },
+  "CarParamsAC": {
+    "title": "Car Params AC",
+    "description": ""
+  },
+  "CarParamsACCache": {
+    "title": "Car Params AC Cache",
+    "description": ""
+  },
+  "CarParamsACPersistent": {
+    "title": "Car Params AC Persistent",
+    "description": ""
+  },
   "CarParamsCache": {
     "title": "Car Params Cache",
     "description": ""
@@ -654,6 +666,22 @@
     "title": "MADS Main Cruise Allowed",
     "description": ""
   },
+  "MadsPauseSpeed": {
+    "title": "MADS Pause Speed",
+    "description": ""
+  },
+  "MadsPauseSpeedEnabled": {
+    "title": "MADS Pause Speed Enabled",
+    "description": ""
+  },
+  "MadsResumeSpeed": {
+    "title": "MADS Resume Speed",
+    "description": ""
+  },
+  "MadsResumeSpeedEnabled": {
+    "title": "MADS Resume Speed Enabled",
+    "description": ""
+  },
   "MadsSteeringMode": {
     "title": "MADS Steering Mode",
     "description": "",
@@ -1082,6 +1110,14 @@
     "max": 2.0,
     "step": 0.1
   },
+  "PreferTorqueTune": {
+    "title": "Prefer Torque Tune",
+    "description": ""
+  },
+  "PresetSelected": {
+    "title": "Selected Preset",
+    "description": ""
+  },
   "PrimeType": {
     "title": "Prime Type",
     "description": ""
@@ -1112,6 +1148,10 @@
   },
   "RecordFrontLock": {
     "title": "Record Front Lock",
+    "description": ""
+  },
+  "RequirePresetAtBoot": {
+    "title": "Require Preset at Boot",
     "description": ""
   },
   "RoadName": {
@@ -1239,6 +1279,10 @@
     "title": "[TIZI/TICI only] Standstill Timer",
     "description": "Show a timer on the HUD when the car is at a standstill."
   },
+  "StockAccOverrideSpeed": {
+    "title": "Stock ACC Override Speed",
+    "description": ""
+  },
   "SubaruStopAndGo": {
     "title": "Subaru Stop and Go",
     "description": ""
@@ -1348,6 +1392,10 @@
     "title": "Update Failed Count",
     "description": ""
   },
+  "UpdateOnMetered": {
+    "title": "Update on Metered Connection",
+    "description": ""
+  },
   "UpdaterAvailableBranches": {
     "title": "Updater Available Branches",
     "description": ""
@@ -1384,6 +1432,10 @@
     "title": "Updater Target Branch",
     "description": ""
   },
+  "UploadOnMetered": {
+    "title": "Upload on Metered Connection",
+    "description": ""
+  },
   "UptimeOffroad": {
     "title": "Uptime Offroad",
     "description": ""
@@ -1394,6 +1446,10 @@
   },
   "Version": {
     "title": "openpilot Version",
+    "description": ""
+  },
+  "WideRoadCameraInChillMode": {
+    "title": "Wide Road Camera in Chill Mode",
     "description": ""
   }
 }

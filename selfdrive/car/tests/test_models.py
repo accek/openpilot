@@ -150,7 +150,7 @@ class TestCarModelBase(unittest.TestCase):
     cls.openpilot_enabled = cls.car_safety_mode_frame is not None
 
     cls.CarInterface = interfaces[cls.platform]
-    cls.CP = cls.CarInterface.get_params(cls.platform, cls.fingerprint, car_fw, alpha_long, False, docs=False)
+    cls.CP = cls.CarInterface.get_params(cls.platform, cls.fingerprint, car_fw, alpha_long, False, prefer_torque_tune=False, docs=False)
     cls.CP_SP = cls.CarInterface.get_params_sp(cls.CP, cls.platform,  cls.fingerprint, car_fw, alpha_long, False, docs=False)
     assert cls.CP
     assert cls.CP_SP
