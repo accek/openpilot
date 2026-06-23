@@ -40,7 +40,11 @@ class Controls(ControlsExt):
     # Initialize sunnypilot controlsd extension and base model state
     ControlsExt.__init__(self, self.CP, self.params)
 
-    self.CI = interfaces[self.CP.carFingerprint](self.CP, self.CP_SP)
+    cloudlog.info("controlsd is waiting for CarParamsAC")
+    self.CP_AC = messaging.log_from_bytes(self.params.get("CarParamsAC", block=True), car_custom.CarParamsAC)
+    cloudlog.info("controlsd got CarParamsAC")
+
+    self.CI = interfaces[self.CP.carFingerprint](self.CP, self.CP_SP, self.CP_AC)
 
     self.sm = messaging.SubMaster(['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'lateralManeuverPlan', 'carState', 'carOutput',
