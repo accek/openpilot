@@ -277,6 +277,10 @@ class TestCarModelBase(unittest.TestCase):
       msgs_sent = 0
       car_control_ac = structs.CarControlAC()
       CI = self.CarInterface(self.CP, self.CP_SP, self.CP_AC)
+      # acspilot: VW MQB long enforces ACC counter continuity across tx. We build a fresh CarController per
+      # scenario (resetting its counter source) while reusing one safety instance, so reset the matching
+      # safety state to mirror a fresh control session (no-op for non-VW; only touches the VW static table).
+      self.safety.reset_volkswagen_mqb_long_counters()
       for _ in range(round(10.0 / DT_CTRL)):  # make sure we hit the slowest messages
         CI.update([])
         _, sendcan = CI.apply(car_control, car_control_sp, car_control_ac, now_nanos)
