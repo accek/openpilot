@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   update_release_draft:
+    if: github.repository == 'sunnypilot/sunnypilot'  # ACSPilot: upstream-only release drafting
     permissions:
       contents: write
       pull-requests: write

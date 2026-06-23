@@ -18,6 +18,7 @@ concurrency:
 jobs:
   docs:
     name: build docs
+    if: github.repository == 'sunnypilot/sunnypilot'  # ACSPilot: upstream-only docs build (irrelevant for this fork)
     runs-on: ubuntu-24.04
     steps:
     - uses: commaai/timeout@v1

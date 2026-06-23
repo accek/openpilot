@@ -223,6 +223,7 @@ jobs:
 
   create_ui_report:
     name: Create UI Report
+    if: github.repository == 'sunnypilot/sunnypilot'  # ACSPilot: UI render needs upstream's runners (headless fork CI has no display/dbus)
     runs-on: ${{
       (github.repository == 'commaai/openpilot') &&
       ((github.event_name != 'pull_request') ||
