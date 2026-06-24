@@ -1,7 +1,7 @@
 Import('env', 'arch', 'messaging', 'common', 'visionipc')
 
 libs = [common, messaging, visionipc,
-        'avformat', 'avcodec', 'swresample', 'avutil', 'x264',
+        'avformat', 'avcodec', 'swresample', 'avutil',
         'pthread', 'z', 'm', 'zstd']
 frameworks = []
 
