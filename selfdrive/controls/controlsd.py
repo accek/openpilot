@@ -175,7 +175,8 @@ class Controls(ControlsExt):
     # ACSPilot carControl: arm/activate stock-ACC override above the configured speed
     CC_AC = car_custom.CarControlAC.new_message()
     if self.CP.openpilotLongitudinalControl:
-      override_speed = CS.vCruiseCluster if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster
+      # stock_acc_override_speed is in m/s; vCruiseCluster is km/h, vEgoCluster is m/s. Normalize to m/s.
+      override_speed = CS.vCruiseCluster * CV.KPH_TO_MS if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster
       CC_AC.stockAccOverrideArmed = override_speed >= self.stock_acc_override_speed
       CC_AC.stockAccOverrideActive = CC_AC.stockAccOverrideArmed and CC.enabled
 
