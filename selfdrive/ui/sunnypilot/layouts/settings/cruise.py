@@ -25,9 +25,6 @@ ICMB_UNAVAILABLE = tr_noop("Intelligent Cruise Button Management is currently un
 ICMB_UNAVAILABLE_LONG_AVAILABLE = tr_noop("Disable the sunnypilot Longitudinal Control (alpha) toggle to allow Intelligent Cruise Button Management.")
 ICMB_UNAVAILABLE_LONG_UNAVAILABLE = tr_noop("sunnypilot Longitudinal Control is the default longitudinal control for this platform.")
 
-ACC_ENABLED_DESCRIPTION = tr_noop("Enable custom Short & Long press increments for cruise speed increase/decrease.")
-ACC_NOLONG_DESCRIPTION = tr_noop("This feature can only be used with sunnypilot longitudinal control enabled.")
-ACC_PCMCRUISE_DISABLED_DESCRIPTION = tr_noop("This feature is not supported on this platform due to vehicle limitations.")
 ONROAD_ONLY_DESCRIPTION = tr_noop("Start the vehicle to check vehicle compatibility.")
 
 
@@ -57,25 +54,6 @@ class CruiseLayout(Widget):
       description=tr("Use map data to estimate the appropriate speed to drive through turns ahead."),
       param="SmartCruiseControlMap")
 
-    self.custom_acc_toggle = toggle_item_sp(
-      title=tr("Custom ACC Speed Increments"),
-      description="",
-      param="CustomAccIncrementsEnabled",
-      callback=self._on_custom_acc_toggle)
-
-    self.custom_acc_short_increment = option_item_sp(
-      title=tr("Short Press Increment"),
-      param="CustomAccShortPressIncrement",
-      min_value=1, max_value=10, value_change_step=1,
-      inline=True)
-
-    self.custom_acc_long_increment = option_item_sp(
-      title=tr("Long Press Increment"),
-      param="CustomAccLongPressIncrement",
-      value_map={1: 1, 2: 5, 3: 10},
-      min_value=1, max_value=3, value_change_step=1,
-      inline=True)
-
     self.sla_settings_button = simple_button_item_sp(
       button_text=lambda: tr("Speed Limit"),
       button_width=800,
@@ -100,9 +78,6 @@ class CruiseLayout(Widget):
       self.dec_toggle,
       self.scc_v_toggle,
       self.scc_m_toggle,
-      self.custom_acc_toggle,
-      self.custom_acc_short_increment,
-      self.custom_acc_long_increment,
       self.stock_acc_override_speed,
       self.sla_settings_button,
     ]
@@ -123,7 +98,6 @@ class CruiseLayout(Widget):
     self._set_current_panel(PanelType.CRUISE)
     self._scroller.show_event()
     self.icbm_toggle.show_description(True)
-    self.custom_acc_toggle.show_description(True)
 
   def _set_current_panel(self, panel: PanelType):
     self._current_panel = panel
@@ -157,16 +131,13 @@ class CruiseLayout(Widget):
           self.icbm_toggle.show_description(True)
 
       if has_long or has_icbm:
-        self.custom_acc_toggle.action_item.set_enabled(((has_long and not ui_state.CP.pcmCruise) or has_icbm) and ui_state.is_offroad())
         self.dec_toggle.action_item.set_enabled(has_long)
         self.scc_v_toggle.action_item.set_enabled(True)
         self.scc_m_toggle.action_item.set_enabled(True)
       else:
-        ui_state.params.remove("CustomAccIncrementsEnabled")
         ui_state.params.remove("DynamicExperimentalControl")
         ui_state.params.remove("SmartCruiseControlVision")
         ui_state.params.remove("SmartCruiseControlMap")
-        self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
         self.scc_v_toggle.action_item.set_enabled(False)
         self.scc_m_toggle.action_item.set_enabled(False)
@@ -176,38 +147,8 @@ class CruiseLayout(Widget):
       self.icbm_toggle.action_item.set_enabled(False)
       self.icbm_toggle.set_description(tr(ONROAD_ONLY_DESCRIPTION))
 
-    show_custom_acc_desc = False
-
-    if ui_state.is_offroad():
-      new_custom_acc_desc = tr(ONROAD_ONLY_DESCRIPTION)
-      show_custom_acc_desc = True
-    else:
-      if has_long or has_icbm:
-        if has_long and ui_state.CP.pcmCruise:
-          new_custom_acc_desc = tr(ACC_PCMCRUISE_DISABLED_DESCRIPTION)
-          show_custom_acc_desc = True
-        else:
-          new_custom_acc_desc = tr(ACC_ENABLED_DESCRIPTION)
-      else:
-        new_custom_acc_desc = tr(ACC_NOLONG_DESCRIPTION)
-        show_custom_acc_desc = True
-        self.custom_acc_toggle.action_item.set_state(False)
-
-    if self.custom_acc_toggle.description != new_custom_acc_desc:
-      self.custom_acc_toggle.set_description(new_custom_acc_desc)
-      if show_custom_acc_desc:
-        self.custom_acc_toggle.show_description(True)
-
-    self._on_custom_acc_toggle(self.custom_acc_toggle.action_item.get_state())
-
     # ACSPilot: stock-ACC override speed — only shown if the car supports it, enabled only with op long
     stock_acc_available = ui_state.CP_AC is not None and ui_state.CP_AC.stockAccOverrideAvailable
     self.stock_acc_override_speed.set_visible(stock_acc_available)
     if stock_acc_available:
       self.stock_acc_override_speed.action_item.set_enabled(ui_state.has_longitudinal_control)
-
-  def _on_custom_acc_toggle(self, state):
-    self.custom_acc_short_increment.set_visible(state)
-    self.custom_acc_long_increment.set_visible(state)
-    self.custom_acc_short_increment.action_item.set_enabled(self.custom_acc_toggle.action_item.enabled)
-    self.custom_acc_long_increment.action_item.set_enabled(self.custom_acc_toggle.action_item.enabled)

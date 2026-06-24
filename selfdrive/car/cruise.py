@@ -51,17 +51,16 @@ class VCruiseHelper(VCruiseHelperSP):
     return (ButtonType.accelCruise, ButtonType.resumeCruise) if self.CP_AC.accelButtonResumesCruise \
            else (ButtonType.accelCruise,)
 
-  def update_v_cruise(self, CS, enabled, is_metric):
+  def update_v_cruise(self, CS, enabled, is_metric, experimental_mode=False, dynamic_experimental_control=False):
     self.v_cruise_kph_last = self.v_cruise_kph
 
     self.get_minimum_set_speed(is_metric)
 
-    _enabled = self.update_enabled_state(CS, enabled)
-
     if CS.cruiseState.available:
-      if not self.CP.pcmCruise or (not self.CP_SP.pcmCruiseSpeed and _enabled):
-        # if stock cruise is completely disabled, then we can use our own set speed logic
-        self._update_v_cruise_non_pcm(CS, _enabled, is_metric)
+      if not self.CP.pcmCruise or not self.CP_SP.pcmCruiseSpeed:
+        # ACSPilot: when openpilot owns the set speed, run our own logic. This works even when ACC is not
+        # engaged, so the driver can set/adjust the cruise speed before activating ACC.
+        self._update_v_cruise_non_pcm(CS, enabled, is_metric, experimental_mode, dynamic_experimental_control)
         self.update_speed_limit_assist_v_cruise_non_pcm()
         self.v_cruise_cluster_kph = self.v_cruise_kph
       else:
@@ -80,11 +79,9 @@ class VCruiseHelper(VCruiseHelperSP):
     if not self.CP.pcmCruise or not self.CP_SP.pcmCruiseSpeed:
       self.update_button_timers(CS, enabled)
 
-  def _update_v_cruise_non_pcm(self, CS, enabled, is_metric):
+  def _update_v_cruise_non_pcm(self, CS, enabled, is_metric, experimental_mode, dynamic_experimental_control):
     # handle button presses. TODO: this should be in state_control, but a decelCruise press
     # would have the effect of both enabling and changing speed is checked after the state transition
-    if not enabled:
-      return
 
     long_press = False
     button_type = None
@@ -107,13 +104,18 @@ class VCruiseHelper(VCruiseHelperSP):
     if button_type is None:
       return
 
+    # ACSPilot: if the user is setting speed before activating ACC for the first time, just set the initial value
+    if not self.v_cruise_initialized:
+      self.initialize_v_cruise(CS, experimental_mode, dynamic_experimental_control)
+      return
+
     # Don't adjust speed when pressing resume to exit standstill
     cruise_standstill = self.button_change_states[button_type]["standstill"] or CS.cruiseState.standstill
     if button_type in self.resume_buttons and cruise_standstill:
       return
 
     # Don't adjust speed if we've enabled since the button was depressed (some ports enable on rising edge)
-    if not self.button_change_states[button_type]["enabled"]:
+    if enabled and not self.button_change_states[button_type]["enabled"]:
       return
 
     # Speed Limit Assist for Non PCM long cars.
@@ -122,8 +124,11 @@ class VCruiseHelper(VCruiseHelperSP):
     if self.update_speed_limit_assist_pre_active_confirmed(button_type):
       return
 
+    # ACSPilot: car-param-driven setpoint increments (large step + optional long-press inversion)
     if button_type in (ButtonType.decelCruise, ButtonType.accelCruise):
-      long_press, v_cruise_delta = VCruiseHelperSP.update_v_cruise_delta(self, long_press, v_cruise_delta)
+      if self.CP_AC.cruiseLongPressReverse:
+        long_press = not long_press
+      v_cruise_delta = v_cruise_delta * (self.CP_AC.cruiseLargeStep if long_press else 1)
       if long_press and self.v_cruise_kph % v_cruise_delta != 0:  # partial interval
         self.v_cruise_kph = CRUISE_NEAREST_FUNC[button_type](self.v_cruise_kph / v_cruise_delta) * v_cruise_delta
       else:
