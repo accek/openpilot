@@ -114,6 +114,7 @@ class OpenpilotMetadata:
       .replace("git@", "", 1) \
       .replace(".git", "", 1) \
       .replace("https://", "", 1) \
+      .replace("ssh://", "", 1) \
       .replace(":", "/", 1)
 
 
