@@ -85,3 +85,59 @@ class TestACCruiseExtensions:
     CS.buttonEvents = [ButtonEvent(type=ButtonType.setCruise, pressed=False)]
     helper.update_v_cruise(CS, enabled=False, is_metric=True)
     assert helper.v_cruise_kph == pytest.approx(80, abs=0.5)
+
+  def _engage(self, helper, engage_button, v_ego_kph, resume_sets_default):
+    # Mirror card.py: update_v_cruise every frame, then initialize_v_cruise(CS_prev) on the enable edge.
+    v_ego = v_ego_kph * CV.KPH_TO_MS
+    cs_prev = car.CarState(vEgo=v_ego, cruiseState={"available": True})
+
+    def step(buttons, enabled, prev_enabled):
+      nonlocal cs_prev
+      CS = car.CarState(vEgo=v_ego, cruiseState={"available": True})
+      CS.buttonEvents = buttons
+      helper.update_v_cruise(CS, enabled=enabled, is_metric=True)
+      if enabled and not prev_enabled:
+        helper.initialize_v_cruise(cs_prev, False, False)
+      cs_prev = CS
+
+    step([], False, False)
+    step([ButtonEvent(type=engage_button, pressed=True)], False, False)   # press
+    step([ButtonEvent(type=engage_button, pressed=False)], True, False)   # release -> enable edge
+
+  @pytest.mark.parametrize("engage_button", [ButtonType.resumeCruise, ButtonType.setCruise, ButtonType.accelCruise])
+  def test_resume_sets_default_engages_to_current_speed(self, engage_button):
+    # ACSPilot: with resumeButtonSetsDefaultVCruise (VW MQB) engaging must set the set speed to the current
+    # speed. Regression: the accel-button path used to restore the stale UNSET (255) sentinel instead, because
+    # card re-runs initialize_v_cruise after _update_v_cruise_non_pcm already initialized this frame.
+    helper = self._make_helper(resumeButtonSetsDefaultVCruise=True)
+    self._engage(helper, engage_button, v_ego_kph=100, resume_sets_default=True)
+    assert helper.v_cruise_kph == pytest.approx(100, abs=0.5)
+
+  def test_resume_sets_default_uses_current_speed_on_reengage(self):
+    # Re-engaging after a disengage (cruise still available, so v_cruise stays initialized at 100) must use
+    # the current speed, not the previously stored setpoint. The resume button is present in CS, so without
+    # the flag this would take the restore-previous branch and keep 100.
+    helper = self._make_helper(resumeButtonSetsDefaultVCruise=True)
+    self._engage(helper, ButtonType.resumeCruise, v_ego_kph=100, resume_sets_default=True)
+    assert helper.v_cruise_kph == pytest.approx(100, abs=0.5)
+    # disengage (cancel) without dropping cruise availability -> v_cruise stays initialized
+    for pressed in (True, False):
+      CS = car.CarState(vEgo=80 * CV.KPH_TO_MS, cruiseState={"available": True})
+      CS.buttonEvents = [ButtonEvent(type=ButtonType.cancel, pressed=pressed)]
+      helper.update_v_cruise(CS, enabled=False, is_metric=True)
+    assert helper.v_cruise_initialized  # still 100, not reset
+    # resume again at 80 km/h: the resume button is in CS, but the default-speed flag must win
+    CS = car.CarState(vEgo=80 * CV.KPH_TO_MS, cruiseState={"available": True})
+    CS.buttonEvents = [ButtonEvent(type=ButtonType.resumeCruise, pressed=True)]
+    helper.initialize_v_cruise(CS, False, False)
+    assert helper.v_cruise_kph == pytest.approx(80, abs=0.5)
+
+  def test_resume_restores_previous_setpoint_by_default(self):
+    # Without the flag (non-VW default) the stock behavior is preserved: resume restores the previous setpoint.
+    helper = self._make_helper()  # resumeButtonSetsDefaultVCruise defaults to False
+    self._set_initial(helper, 120)
+    helper.v_cruise_kph_last = 120
+    CS = car.CarState(vEgo=60 * CV.KPH_TO_MS, cruiseState={"available": True})
+    CS.buttonEvents = [ButtonEvent(type=ButtonType.resumeCruise, pressed=True)]
+    helper.initialize_v_cruise(CS, False, False)
+    assert helper.v_cruise_kph == 120

@@ -164,7 +164,13 @@ class VCruiseHelper(VCruiseHelperSP):
     initial_experimental_mode = experimental_mode and not dynamic_experimental_control
     initial = V_CRUISE_INITIAL_EXPERIMENTAL_MODE if initial_experimental_mode else V_CRUISE_INITIAL
 
-    if any(b.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for b in CS.buttonEvents) and self.v_cruise_initialized:
+    # ACSPilot: with resumeButtonSetsDefaultVCruise the resume/accel button always sets the cruise speed to
+    # the current speed (the "default") rather than restoring the previous setpoint. This also avoids a stale
+    # restore: card re-runs initialize_v_cruise on the enable edge after _update_v_cruise_non_pcm already
+    # initialized this frame, at which point v_cruise_kph_last still holds the UNSET sentinel (255).
+    restore_previous = (any(b.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for b in CS.buttonEvents)
+                        and self.v_cruise_initialized and not self.CP_AC.resumeButtonSetsDefaultVCruise)
+    if restore_previous:
       self.v_cruise_kph = self.v_cruise_kph_last
     else:
       self.v_cruise_kph = int(round(np.clip(CS.vEgo * CV.MS_TO_KPH, initial, V_CRUISE_MAX)))
