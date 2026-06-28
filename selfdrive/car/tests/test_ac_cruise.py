@@ -113,10 +113,10 @@ class TestACCruiseExtensions:
     self._engage(helper, engage_button, v_ego_kph=100, resume_sets_default=True)
     assert helper.v_cruise_kph == pytest.approx(100, abs=0.5)
 
-  def test_resume_sets_default_uses_current_speed_on_reengage(self):
-    # Re-engaging after a disengage (cruise still available, so v_cruise stays initialized at 100) must use
-    # the current speed, not the previously stored setpoint. The resume button is present in CS, so without
-    # the flag this would take the restore-previous branch and keep 100.
+  def test_resume_restores_setpoint_on_reengage(self):
+    # ACSPilot: resume sets the speed to the current speed only when no setpoint is set yet. When a setpoint
+    # already exists (cruise stayed available through the disengage, so v_cruise stays initialized at 100),
+    # re-engaging with resume must restore that setpoint rather than jumping to the current speed.
     helper = self._make_helper(resumeButtonSetsDefaultVCruise=True)
     self._engage(helper, ButtonType.resumeCruise, v_ego_kph=100, resume_sets_default=True)
     assert helper.v_cruise_kph == pytest.approx(100, abs=0.5)
@@ -126,11 +126,11 @@ class TestACCruiseExtensions:
       CS.buttonEvents = [ButtonEvent(type=ButtonType.cancel, pressed=pressed)]
       helper.update_v_cruise(CS, enabled=False, is_metric=True)
     assert helper.v_cruise_initialized  # still 100, not reset
-    # resume again at 80 km/h: the resume button is in CS, but the default-speed flag must win
+    # resume again at 80 km/h: the setpoint is still 100, so resume restores it (v_cruise_kph_last == 100)
     CS = car.CarState(vEgo=80 * CV.KPH_TO_MS, cruiseState={"available": True})
     CS.buttonEvents = [ButtonEvent(type=ButtonType.resumeCruise, pressed=True)]
     helper.initialize_v_cruise(CS, False, False)
-    assert helper.v_cruise_kph == pytest.approx(80, abs=0.5)
+    assert helper.v_cruise_kph == pytest.approx(100, abs=0.5)
 
   def test_resume_restores_previous_setpoint_by_default(self):
     # Without the flag (non-VW default) the stock behavior is preserved: resume restores the previous setpoint.

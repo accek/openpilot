@@ -164,12 +164,17 @@ class VCruiseHelper(VCruiseHelperSP):
     initial_experimental_mode = experimental_mode and not dynamic_experimental_control
     initial = V_CRUISE_INITIAL_EXPERIMENTAL_MODE if initial_experimental_mode else V_CRUISE_INITIAL
 
-    # ACSPilot: with resumeButtonSetsDefaultVCruise the resume/accel button always sets the cruise speed to
-    # the current speed (the "default") rather than restoring the previous setpoint. This also avoids a stale
-    # restore: card re-runs initialize_v_cruise on the enable edge after _update_v_cruise_non_pcm already
-    # initialized this frame, at which point v_cruise_kph_last still holds the UNSET sentinel (255).
-    restore_previous = (any(b.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for b in CS.buttonEvents)
-                        and self.v_cruise_initialized and not self.CP_AC.resumeButtonSetsDefaultVCruise)
+    # ACSPilot: with resumeButtonSetsDefaultVCruise resume restores the previous setpoint when one exists,
+    # and otherwise engages at the current speed. We key off v_cruise_kph_last (the setpoint as of the
+    # previous frame) rather than v_cruise_initialized, because card re-runs initialize_v_cruise on the
+    # enable edge after _update_v_cruise_non_pcm already set the speed this frame: at that point
+    # v_cruise_initialized is already True, but v_cruise_kph_last still holds the pre-engage value (the
+    # UNSET sentinel (255) on a genuinely fresh engage), so a fresh engage correctly falls to current speed.
+    resume_pressed = any(b.type in (ButtonType.accelCruise, ButtonType.resumeCruise) for b in CS.buttonEvents)
+    if self.CP_AC.resumeButtonSetsDefaultVCruise:
+      restore_previous = resume_pressed and self.v_cruise_kph_last != V_CRUISE_UNSET
+    else:
+      restore_previous = resume_pressed and self.v_cruise_initialized
     if restore_previous:
       self.v_cruise_kph = self.v_cruise_kph_last
     else:
