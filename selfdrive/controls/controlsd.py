@@ -177,7 +177,10 @@ class Controls(ControlsExt):
     if self.CP.openpilotLongitudinalControl:
       # stock_acc_override_speed is in m/s; vCruiseCluster is km/h, vEgoCluster is m/s. Normalize to m/s.
       override_speed = CS.vCruiseCluster * CV.KPH_TO_MS if CS.vCruiseCluster != V_CRUISE_UNSET else CS.vEgoCluster
-      CC_AC.stockAccOverrideArmed = override_speed >= self.stock_acc_override_speed
+      # ACSPilot: in Experimental mode openpilot fully owns longitudinal, so suppress the stock-ACC switch
+      # entirely (this also cancels stock ACC if it was engaged, and reverts the HUD to openpilot-generated).
+      experimental_mode = self.sm['selfdriveState'].experimentalMode
+      CC_AC.stockAccOverrideArmed = override_speed >= self.stock_acc_override_speed and not experimental_mode
       CC_AC.stockAccOverrideActive = CC_AC.stockAccOverrideArmed and CC.enabled
 
     return CC, lac_log, CC_AC
