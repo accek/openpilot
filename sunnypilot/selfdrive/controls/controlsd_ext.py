@@ -57,7 +57,11 @@ class ControlsExt(ModelStateBase):
       self._param_update_time = time.monotonic()
 
   def get_lat_active(self, sm: messaging.SubMaster) -> bool:
-    if self.blinker_pause_lateral.update(sm['carState']):
+    # ACSPilot: never pause lateral due to a blinker while longitudinal (ACC) is engaged. When ACC owns
+    # longitudinal, steering must stay active regardless of the pause-on-blinker setting. We still run
+    # update() so the reengage timer stays coherent for when longitudinal disengages.
+    blinker_pause = self.blinker_pause_lateral.update(sm['carState'])
+    if blinker_pause and not sm['selfdriveState'].enabled:
       return False
 
     ss_sp = sm['selfdriveStateSP']

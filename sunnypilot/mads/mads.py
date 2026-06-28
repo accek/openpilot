@@ -222,7 +222,9 @@ class ModularAssistiveDrivingSystem:
     # ACSPilot: release the low-speed steering pause at the resume speed (or when fully disengaged).
     # Note: a manual LKAS re-enable adds lkasEnable (not silentLkasEnable) and bypasses the gate, so
     # the driver can always re-engage; this only suppresses the automatic silent resume.
-    if self.state_machine.state == State.disabled:
+    if self.state_machine.state == State.disabled or self.selfdrive.enabled:
+      # ACSPilot: clear the pause when fully disengaged, and never keep lateral paused while longitudinal
+      # (ACC) is engaged - steering must stay active whenever ACC drives, regardless of the pause setting.
       self.speed_paused = False
     elif self.speed_paused:
       resume_speed = self.resume_speed if self.resume_speed is not None else self.pause_speed

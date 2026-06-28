@@ -85,3 +85,58 @@ class TestSpeedPauseGate:
     mads = _bare_mads()
     mads.speed_paused = True
     assert mads.should_silent_lkas_enable(_carstate()) is False
+
+
+def _mads_for_update_events(long_enabled, state):
+  # bare MADS with just the attributes update_events() touches on the speed-pause release path
+  from types import SimpleNamespace
+  import cereal.messaging as messaging
+  from openpilot.selfdrive.selfdrived.events import Events
+  from openpilot.sunnypilot.selfdrive.selfdrived.events import EventsSP
+
+  mads = ModularAssistiveDrivingSystem.__new__(ModularAssistiveDrivingSystem)
+  mads.enabled = True
+  mads.speed_paused = True
+  mads.steering_mode_on_brake = MadsSteeringModeOnBrake.REMAIN_ACTIVE
+  mads.main_enabled_toggle = False
+  mads.no_main_cruise = False
+  mads.allow_always = False
+  mads.disengage_on_accelerator = False
+  mads.pause_speed = 4.4
+  mads.resume_speed = 18.0  # well above the test CS speed so the speed gate alone would NOT release
+  mads.lateral_mismatch_counter = 0
+  mads.events = Events()
+  mads.events_sp = EventsSP()
+  mads.state_machine = SimpleNamespace(state=state)
+  cs_prev = messaging.new_message('carState').carState
+  cs_prev.cruiseState.available = True
+  mads.selfdrive = SimpleNamespace(enabled=long_enabled, enabled_prev=long_enabled, CS_prev=cs_prev)
+  return mads
+
+
+def _cs_available_stopped():
+  import cereal.messaging as messaging
+  cs = messaging.new_message('carState').carState
+  cs.cruiseState.available = True
+  cs.vEgoCluster = 0.0  # below resume_speed, so only longitudinal engagement can release the pause
+  return cs
+
+
+class TestSpeedPauseClearedWhenLongEngaged:
+  # ACSPilot: a low-speed steering pause must never keep lateral paused while longitudinal (ACC) is
+  # engaged. Even below the resume speed, engaging ACC releases the pause AND re-engages lateral: the
+  # cleared latch lets should_silent_lkas_enable() emit silentLkasEnable (ET.ENABLE), which drives the
+  # MADS state machine paused -> enabled.
+  def test_long_engaged_releases_pause_and_reengages_lateral(self):
+    from openpilot.sunnypilot.mads.mads import State, EventNameSP
+    mads = _mads_for_update_events(long_enabled=True, state=State.paused)
+    mads.update_events(_cs_available_stopped())
+    assert mads.speed_paused is False
+    assert mads.events_sp.has(EventNameSP.silentLkasEnable)  # re-engage requested
+
+  def test_long_not_engaged_keeps_pause_and_does_not_reengage(self):
+    from openpilot.sunnypilot.mads.mads import State, EventNameSP
+    mads = _mads_for_update_events(long_enabled=False, state=State.paused)
+    mads.update_events(_cs_available_stopped())
+    assert mads.speed_paused is True  # below resume speed, ACC off -> stays paused
+    assert not mads.events_sp.has(EventNameSP.silentLkasEnable)
