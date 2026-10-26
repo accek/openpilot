@@ -306,7 +306,8 @@ class Device(DeviceSP):
         callback()
     self._prev_timed_out = interaction_timeout
 
-    self._set_awake(ui_state.ignition or not interaction_timeout or PC)
+    # Only stay awake on ignition once onroad, so the screen times out if no preset was picked at boot
+    self._set_awake((ui_state.ignition and ui_state.started) or not interaction_timeout or PC)
 
   def _set_awake(self, on: bool):
     if on != self._awake:
