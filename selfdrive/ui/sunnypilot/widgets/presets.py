@@ -15,12 +15,12 @@ from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.widgets.button import Button, ButtonStyle
 
 # ACSPilot: operating-mode presets. Each preset writes a group of params.
-# Note: the old fork's OnroadScreenOff param does not exist in 2026, so only the
-# params that still exist are written (engagement mode + onroad-off brightness).
+# Note: the old fork's OnroadScreenOff/OnroadScreenOffBrightness writes are not carried over: they were
+# never read there, while in 2026 OnroadScreenOffBrightness is a 0-22 setting the user picks in Display.
 PRESETS = [
-  (tr("Dashcam"), {"OpenpilotEnabledToggle": False, "AlphaLongitudinalEnabled": False, "OnroadScreenOffBrightness": 0}),
-  (tr("Openpilot\nSteering"), {"OpenpilotEnabledToggle": True, "AlphaLongitudinalEnabled": False, "OnroadScreenOffBrightness": 50}),
-  (tr("Openpilot\nFull"), {"OpenpilotEnabledToggle": True, "AlphaLongitudinalEnabled": True, "OnroadScreenOffBrightness": 50}),
+  (tr("Dashcam"), {"OpenpilotEnabledToggle": False, "AlphaLongitudinalEnabled": False}),
+  (tr("Openpilot\nSteering"), {"OpenpilotEnabledToggle": True, "AlphaLongitudinalEnabled": False}),
+  (tr("Openpilot\nFull"), {"OpenpilotEnabledToggle": True, "AlphaLongitudinalEnabled": True}),
 ]
 
 TITLE_HEIGHT = 140

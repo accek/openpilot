@@ -11,6 +11,7 @@ from openpilot.sunnypilot.selfdrive.car.sync_car_list_param import CAR_LIST_JSON
 
 ONROAD_BRIGHTNESS_MIGRATION_VERSION: str = "1.0"
 ONROAD_BRIGHTNESS_TIMER_MIGRATION_VERSION: str = "1.0"
+ONROAD_BRIGHTNESS_MAX = 22  # 0: Auto, 1: Auto (Dark), 2: Screen Off, 3-22: 5%-100%
 
 # index → seconds mapping for OnroadScreenOffTimer (SSoT)
 ONROAD_BRIGHTNESS_TIMER_VALUES = {0: 3, 1: 5, 2: 7, 3: 10, 4: 15, 5: 30, **{i: (i - 5) * 60 for i in range(6, 16)}}
@@ -78,5 +79,15 @@ def run_migration(_params):
       cloudlog.info(log_str + f" Setting OnroadScreenOffTimerMigrated to {ONROAD_BRIGHTNESS_TIMER_MIGRATION_VERSION}")
     except Exception as e:
       cloudlog.exception(f"Error migrating OnroadScreenOffTimer: {e}")
+
+  # ACSPilot: older presets wrote OnroadScreenOffBrightness=50, which is out of range (0-22) and drives the
+  # backlight to 240%, freezing it. Reset any out-of-range value to Auto.
+  try:
+    val = _params.get("OnroadScreenOffBrightness", return_default=True)
+    if not 0 <= val <= ONROAD_BRIGHTNESS_MAX:
+      _params.put("OnroadScreenOffBrightness", 0)
+      cloudlog.info(f"Reset out-of-range OnroadScreenOffBrightness {val} to 0 (Auto).")
+  except Exception as e:
+    cloudlog.exception(f"Error validating OnroadScreenOffBrightness: {e}")
 
   _migrate_car_platform_bundle(_params)

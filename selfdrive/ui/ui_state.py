@@ -23,6 +23,23 @@ def screen_brightness_to_light_sensor(screen_brightness: float) -> float:
   return 100.0 * min(1.0, screen_brightness)
 
 
+# ACSPilot: lowest backlight (%) when the brightness follows the car's dimmer, as in the old fork.
+CAR_BRIGHTNESS_MIN = 6.0
+
+
+def light_sensor_to_lightness(light_sensor: float) -> float:
+  # CIE 1931 - https://www.photonstophotos.net/GeneralTopics/Exposure/Psychometric_Lightness_and_Gamma.htm
+  if light_sensor <= 8:
+    return light_sensor / 903.3
+  return ((light_sensor + 16.0) / 116.0) ** 3.0
+
+
+def car_light_sensor_to_brightness(light_sensor: float) -> float:
+  # ACSPilot: the car's dimmer already reflects the driver's preference, so scale to 6%-100% instead of
+  # stretching onto [min_onroad_brightness, 100] (which keeps the screen at >= 30% at night).
+  return float(np.clip(100.0 * light_sensor_to_lightness(light_sensor), CAR_BRIGHTNESS_MIN, 100.0))
+
+
 class UIStatus(Enum):
   DISENGAGED = "disengaged"
   ENGAGED = "engaged"
@@ -91,6 +108,7 @@ class UIState(UIStateSP):
     self.CP: car.CarParams | None = None
     self.wide_cam_in_chill_mode: bool = False  # ACSPilot
     self.light_sensor: float = -1.0
+    self.light_sensor_from_car: bool = False  # ACSPilot
     self._param_update_time: float = 0.0
 
     # Callbacks
@@ -139,8 +157,10 @@ class UIState(UIStateSP):
     elif self.sm.frame - self.sm.recv_frame["pandaStates"] > 5 * rl.get_fps():
       self.panda_type = log.PandaState.PandaType.unknown
 
-    # ACSPilot: prefer the car-reported screen brightness (e.g. VW Dimmung) over the camera light sensor
-    if self.sm.updated["carStateAC"] and self.sm["carStateAC"].screenBrightness > 0:
+    # ACSPilot: prefer the car-reported screen brightness (e.g. VW Dimmung) over the camera light sensor.
+    # Use the latest alive value rather than only fresh updates, so camera frames don't take over in between.
+    self.light_sensor_from_car = self.sm.alive["carStateAC"] and self.sm["carStateAC"].screenBrightness > 0
+    if self.light_sensor_from_car:
       self.light_sensor = screen_brightness_to_light_sensor(self.sm["carStateAC"].screenBrightness)
     # Handle wide road camera state updates
     elif self.sm.updated["wideRoadCameraState"]:
@@ -261,19 +281,16 @@ class Device(DeviceSP):
     clipped_brightness = self._offroad_brightness
 
     if ui_state.started and ui_state.light_sensor >= 0:
-      clipped_brightness = ui_state.light_sensor
-
-      # CIE 1931 - https://www.photonstophotos.net/GeneralTopics/Exposure/Psychometric_Lightness_and_Gamma.htm
-      if clipped_brightness <= 8:
-        clipped_brightness = clipped_brightness / 903.3
+      if ui_state.light_sensor_from_car:
+        clipped_brightness = car_light_sensor_to_brightness(ui_state.light_sensor)
       else:
-        clipped_brightness = ((clipped_brightness + 16.0) / 116.0) ** 3.0
+        clipped_brightness = light_sensor_to_lightness(ui_state.light_sensor)
 
-      min_brightness = 30
-      if gui_app.sunnypilot_ui():
-        min_brightness = DeviceSP.set_min_onroad_brightness(ui_state, min_brightness)
+        min_brightness = 30
+        if gui_app.sunnypilot_ui():
+          min_brightness = DeviceSP.set_min_onroad_brightness(ui_state, min_brightness)
 
-      clipped_brightness = float(np.interp(clipped_brightness, [0, 1], [min_brightness, 100]))
+        clipped_brightness = float(np.interp(clipped_brightness, [0, 1], [min_brightness, 100]))
 
     brightness = round(self._brightness_filter.update(clipped_brightness))
 

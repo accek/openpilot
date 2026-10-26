@@ -232,8 +232,8 @@ class DeviceSP:
     if _ui_state.onroad_brightness == OnroadBrightness.SCREEN_OFF:
       return 0.0
 
-    # 3-22: 5% - 100%
-    return float((_ui_state.onroad_brightness - 2) * 5)
+    # 3-22: 5% - 100% (ACSPilot: clamped, so an out-of-range param can't push the backlight past 100%)
+    return float(min(max((_ui_state.onroad_brightness - 2) * 5, 0), 100))
 
   @staticmethod
   def set_min_onroad_brightness(_ui_state, min_brightness: int) -> int:
