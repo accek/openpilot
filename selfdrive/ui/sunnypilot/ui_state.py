@@ -211,7 +211,9 @@ class UIStateSP:
 class DeviceSP:
   @staticmethod
   def _set_awake(on: bool, _ui_state):
-    if _ui_state.boot_offroad_mode == 1 and not on:
+    # "Offroad" wake mode: go always-offroad when the device sleeps. The screen can also time out with the
+    # ignition on while no preset is picked; that is not a parked sleep, so it must not flip Offroad Mode on
+    if _ui_state.boot_offroad_mode == 1 and not on and not _ui_state.ignition:
       _ui_state.params.put_bool("OffroadMode", True)
 
   @staticmethod

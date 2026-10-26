@@ -308,10 +308,12 @@ class Device(DeviceSP):
 
   def _update_wakefulness(self):
     # Handle interactive timeout
-    ignition_just_turned_off = not ui_state.ignition and self._ignition
+    # Any ignition change wakes the screen: on ignition-off as upstream, and on ignition-on so a device that
+    # timed out while waiting for a preset (ignition no longer keeps it awake) shows the picker when the car starts
+    ignition_changed = ui_state.ignition != self._ignition
     self._ignition = ui_state.ignition
 
-    if ignition_just_turned_off or any(ev.left_down for ev in gui_app.mouse_events):
+    if ignition_changed or any(ev.left_down for ev in gui_app.mouse_events):
       if gui_app.sunnypilot_ui():
         DeviceSP.wake_from_dimmed_onroad_brightness(ui_state, gui_app.mouse_events)
 
