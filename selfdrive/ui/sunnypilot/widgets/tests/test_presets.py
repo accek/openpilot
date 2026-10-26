@@ -33,3 +33,8 @@ class TestApplyPreset:
         assert params.get_bool(key) is value
       else:
         assert int(params.get(key)) == value
+
+  def test_presets_leave_onroad_brightness_alone(self):
+    # OnroadScreenOffBrightness is the user's Display setting (0-22); presets must not overwrite it
+    # (the old fork wrote 50, which drives the backlight out of range and freezes it).
+    assert all("OnroadScreenOffBrightness" not in preset for _, preset in PRESETS)
