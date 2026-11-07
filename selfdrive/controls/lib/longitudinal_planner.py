@@ -17,7 +17,10 @@ from openpilot.common.swaglog import cloudlog
 
 from openpilot.sunnypilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlannerSP
 
-A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
+# acspilot: 2.0 at standstill / 1.5 at 10 m/s (VW ACCEL_MAX is 2.0; stock radar asks 1.8-1.9 on launch) so a lead
+# pulling away at 1.1-1.2 m/s2 is followed instead of being let go (Nov 2026 logs: lead pull-aways below 8 m/s ran at the old cap 62 % of
+# the time; closed-loop sim of the measured launches gains ~1 m of gap, ~2 m with aggressive personality)
+A_CRUISE_MAX_VALS = [2.0, 1.5, 0.8, 0.6]
 A_CRUISE_MAX_BP = [0., 10.0, 25., 40.]
 CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 ALLOW_THROTTLE_THRESHOLD = 0.4
