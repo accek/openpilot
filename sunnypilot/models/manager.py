@@ -23,6 +23,10 @@ from openpilot.sunnypilot.models.helpers import verify_file, get_active_bundle
 class ModelManagerSP:
   """Manages model downloads and status reporting"""
 
+  # How often (in 1 Hz ticks) to re-read the bundle cache when no download is pending. The fetcher
+  # handles remote refresh and retry backoff itself; each consultation still costs a JSON params read.
+  BUNDLE_REFRESH_FRAMES = 10
+
   def __init__(self):
     self.params = Params()
     self.model_fetcher = ModelFetcher(self.params)
@@ -168,10 +172,12 @@ class ModelManagerSP:
 
     while True:
       try:
-        self.available_models = self.model_fetcher.get_available_bundles()
+        index_to_download = self.params.get("ModelManager_DownloadIndex")
+        if index_to_download is not None or rk.frame % self.BUNDLE_REFRESH_FRAMES == 0:
+          self.available_models = self.model_fetcher.get_available_bundles()
         self.active_bundle = get_active_bundle(self.params)
 
-        if (index_to_download := self.params.get("ModelManager_DownloadIndex")) is not None:
+        if index_to_download is not None:
           if model_to_download := next((model for model in self.available_models if model.index == index_to_download), None):
             try:
               self.download(model_to_download, Paths.model_root())
@@ -180,6 +186,9 @@ class ModelManagerSP:
             finally:
               self.params.remove("ModelManager_DownloadIndex")
               self.selected_bundle = None
+              # the download mutated the bundle objects' status fields; re-parse so the published list is pristine again
+              self.model_fetcher.invalidate()
+              self.available_models = self.model_fetcher.get_available_bundles()
 
         if self.params.get("ModelManager_ClearCache"):
             self.clear_model_cache()

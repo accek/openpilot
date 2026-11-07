@@ -101,7 +101,7 @@ class ModelCache:
     try:
       cached_data = self.params.get(self._CACHE_KEY)
       if not cached_data:
-        cloudlog.warning("No cached model data available")
+        cloudlog.debug("No cached model data available")
         return {}, True
       return cached_data, self._is_expired()
     except Exception as e:
@@ -118,10 +118,50 @@ class ModelFetcher:
   """Handles fetching and caching of model data from remote source"""
   MODEL_URL = "https://raw.githubusercontent.com/sunnypilot/sunnypilot-models/refs/heads/gh-pages/docs/driving_models_v16.json"
 
+  # Retry schedule after a failed fetch: 1, 2, 4, 8 min, then every FETCH_BACKOFF_MAX_S.
+  # models_manager polls get_available_bundles() at 1 Hz; without this, an offline device
+  # (or one with a dead DNS) hammers the URL every second once the cache has expired.
+  FETCH_BACKOFF_MIN_S = 60.0
+  FETCH_BACKOFF_MAX_S = 15 * 60.0
+
   def __init__(self, params: Params):
     self.params = params
     self.model_cache = ModelCache(params)
     self.model_parser = ModelParser()
+    self._fetch_failures = 0
+    self._next_fetch_time = 0.0  # monotonic; fetches are allowed once this has passed
+    self._parsed_data: dict | None = None
+    self._parsed_bundles: list[custom.ModelManagerSP.ModelBundle] = []
+
+  def fetch_backoff(self) -> float:
+    """Seconds to wait before the next fetch attempt, given the number of consecutive failures so far"""
+    if self._fetch_failures == 0:
+      return 0.0
+    return min(self.FETCH_BACKOFF_MIN_S * 2 ** (self._fetch_failures - 1), self.FETCH_BACKOFF_MAX_S)
+
+  def _fetch_allowed(self) -> bool:
+    return time.monotonic() >= self._next_fetch_time
+
+  def _record_fetch_result(self, success: bool) -> None:
+    if success:
+      self._fetch_failures = 0
+      self._next_fetch_time = 0.0
+    else:
+      self._fetch_failures += 1
+      self._next_fetch_time = time.monotonic() + self.fetch_backoff()
+      cloudlog.warning(f"Models fetch failed {self._fetch_failures}x, next attempt in {self.fetch_backoff():.0f}s")
+
+  def invalidate(self) -> None:
+    """Drops the memoized parse so the next call re-parses the cached data (resets per-bundle download state)"""
+    self._parsed_data = None
+    self._parsed_bundles = []
+
+  def _parse_cached(self, cached_data: dict) -> list[custom.ModelManagerSP.ModelBundle]:
+    """Parses cached data, memoized on the data itself so a 1 Hz caller doesn't rebuild the bundle list every tick"""
+    if self._parsed_data is None or cached_data != self._parsed_data:
+      self._parsed_bundles = self.model_parser.parse_models(cached_data)
+      self._parsed_data = cached_data
+    return self._parsed_bundles
 
   def _fetch_and_cache_models(self) -> list[custom.ModelManagerSP.ModelBundle] | None:
     """Fetches fresh model data from remote and updates cache.
@@ -141,7 +181,8 @@ class ModelFetcher:
       json_data = response.json()
       self.model_cache.set(json_data)
       cloudlog.debug("Successfully updated models cache")
-      return self.model_parser.parse_models(json_data)
+      self._record_fetch_result(True)
+      return self._parse_cached(json_data)
 
     except ConnectionError as e:
       cloudlog.warning(f"DNS/connection error while fetching models: {e}")
@@ -152,6 +193,7 @@ class ModelFetcher:
     except Exception as e:
       cloudlog.exception(f"Unexpected error fetching models: {e}")
 
+    self._record_fetch_result(False)
     return None
 
   def get_available_bundles(self) -> list[custom.ModelManagerSP.ModelBundle]:
@@ -160,7 +202,11 @@ class ModelFetcher:
 
     if cached_data and not is_expired:
       cloudlog.debug("Using valid cached models data")
-      return self.model_parser.parse_models(cached_data)
+      return self._parse_cached(cached_data)
+
+    if not self._fetch_allowed():
+      # a recent fetch failed; keep serving the (expired) cache quietly until the backoff expires
+      return self._parse_cached(cached_data)
 
     fetched_bundles = self._fetch_and_cache_models()
     if fetched_bundles is not None:
@@ -168,9 +214,9 @@ class ModelFetcher:
 
     if not cached_data:
       cloudlog.warning("Failed to fetch fresh data and no cache available")
-
-    cloudlog.warning("Failed to fetch fresh data. Using expired cache as fallback")
-    return self.model_parser.parse_models(cached_data)
+    else:
+      cloudlog.warning("Failed to fetch fresh data. Using expired cache as fallback")
+    return self._parse_cached(cached_data)
 
 if __name__ == "__main__":
   params = Params()

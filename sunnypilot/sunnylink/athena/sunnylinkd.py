@@ -296,21 +296,51 @@ def startLocalProxy(global_end_event: threading.Event, remote_ws_uri: str, local
   return start_local_proxy_shim(global_end_event, local_port, ws)
 
 
+SUNNYLINK_NOT_READY_POLL_S = 60  # how often to re-check SunnylinkEnabled / registration / temp fault while idle
+SUNNYLINK_REGISTRATION_POLL_S = 10
+
+
+def _wait(exit_event: threading.Event | None, seconds: float) -> None:
+  if exit_event is not None:
+    exit_event.wait(seconds)
+  else:
+    time.sleep(seconds)
+
+
 def main(exit_event: threading.Event | None = None):
   try:
     set_core_affinity([0, 1, 2, 3])
   except Exception:
     cloudlog.exception("failed to set core affinity")
 
-  while sunnylink_need_register(params):
-    cloudlog.info("Waiting for sunnylink registration to complete")
-    time.sleep(10)
+  initialized = False
+  while exit_event is None or not exit_event.is_set():
+    if sunnylink_need_register(params):
+      cloudlog.info("Waiting for sunnylink registration to complete")
+      _wait(exit_event, SUNNYLINK_REGISTRATION_POLL_S)
+      continue
 
+    if not sunnylink_ready(params):
+      # sunnylink is disabled or on a temporary fault. Idle here instead of returning: manage_sunnylinkd
+      # would otherwise respawn a fresh interpreter every minute for as long as the device is offroad.
+      cloudlog.debug(f"sunnylinkd.main: sunnylink not ready, re-checking in {SUNNYLINK_NOT_READY_POLL_S}s")
+      _wait(exit_event, SUNNYLINK_NOT_READY_POLL_S)
+      continue
+
+    if not initialized:
+      UploadQueueCache.initialize(upload_queue)
+      update_car_list_param()
+      initialized = True
+
+    if run_ws_loop(exit_event):
+      break
+
+
+def run_ws_loop(exit_event: threading.Event | None) -> bool:
+  """Connects to the sunnylink athena host and services it until sunnylink stops being ready or exit_event is set.
+  Returns True if the daemon was asked to shut down (SIGINT / SystemExit)."""
   sunnylink_dongle_id = params.get("SunnylinkDongleId")
   sunnylink_api = SunnylinkApi(sunnylink_dongle_id)
-  UploadQueueCache.initialize(upload_queue)
-
-  update_car_list_param()
 
   ws_uri = f"{SUNNYLINK_ATHENA_HOST}"
   conn_start = None
@@ -337,7 +367,7 @@ def main(exit_event: threading.Event | None = None):
 
       handle_long_poll(ws, exit_event)
     except (KeyboardInterrupt, SystemExit):
-      break
+      return True
     except Exception as e:
       conn_retries += 1
       params.remove("LastSunnylinkPingTime")
@@ -352,11 +382,9 @@ def main(exit_event: threading.Event | None = None):
       else:
         cloudlog.exception("sunnylinkd.main.exception")
 
-    time.sleep(backoff(conn_retries))
+    _wait(exit_event, backoff(conn_retries))
 
-  if not sunnylink_ready(params):
-    cloudlog.debug("Reached end of sunnylinkd.main while sunnylink is not ready. Waiting 60s before retrying")
-    time.sleep(60)
+  return False
 
 
 if __name__ == "__main__":
